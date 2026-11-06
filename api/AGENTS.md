@@ -27,6 +27,7 @@ Nest's packages are ESM only, and this project is ESM too: relative imports end 
 
 The database is PostgreSQL through [`@nestjs/drizzle`](https://docs.nestjs.com/data/drizzle.md) and Drizzle ORM **0.45** (not the v1 release candidate the Nest docs show: relations use `relations()` from `drizzle-orm`, not `defineRelations`, and the schema is passed to `drizzle()` as `schema`).
 
+- Feature modules live under `src/app/` (`polls`, `surveys`, `users`); the database layer under `src/database/`.
 - Table definitions live in `src/database/schema/`, one file per aggregate, re-exported from `schema/index.ts`. Inject the database with `@InjectDrizzle() private readonly db: Database`, both exported from `src/database/database.types.ts`.
 - `src/database/database.module.ts` connects using `DATABASE_URL` and runs Drizzle's `migrate()` on startup, so the app always boots against an up-to-date schema.
 - SQL migrations in `drizzle/` are generated: after a schema change run `yarn db:generate` and commit the result. Never edit `drizzle/` by hand, and never gitignore it.

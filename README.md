@@ -132,7 +132,7 @@ The API applies pending migrations when it starts, so no separate step is needed
 
 ## Project status
 
-OpenSurvey is in early development. The API exposes a single health-style route and a database schema for users, surveys, and polls, and the frontend ships a landing page. Survey authoring, response collection, and results views are the next pieces of work. Expect breaking changes until a first release is tagged.
+OpenSurvey is in early development. The API boots against PostgreSQL with a database schema for users, surveys, and polls but exposes no routes yet, and the frontend ships a landing page. Survey authoring, response collection, and results views are the next pieces of work. Expect breaking changes until a first release is tagged.
 
 ## Contributing
 
