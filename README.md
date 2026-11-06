@@ -39,6 +39,7 @@ Each directory is an independent package with its own `package.json`, `yarn.lock
 
 - **Node.js 26** (the version CI runs on; 22 or newer should also work)
 - **Yarn 1.22 (classic).** Both packages pin `yarn@1.22.22` and ship a v1 lockfile.
+- **Docker.** The API needs a PostgreSQL database. `api/docker-compose.yml` runs one for development, and the end-to-end tests start their own throwaway instance with [Testcontainers](https://testcontainers.com).
 
 ## Getting started
 
@@ -54,15 +55,16 @@ cd opensurvey
 
 ### Run the API
 
-The API reads environment variables from `api/.env`, so create that file first. It can be empty for local development.
+The API reads environment variables from `api/.env`. Start the development database, copy the example configuration, then run the API.
 
 ```bash
 cd api
-touch .env
+docker compose up -d
+cp .env.example .env
 yarn start:dev
 ```
 
-The API listens on `http://localhost:3000` by default. Set `PORT` in `.env` to change it.
+On startup the API connects to `DATABASE_URL` and applies any pending database migrations, so a fresh database is ready to use immediately. The API listens on `http://localhost:3000` by default. Set `PORT` in `.env` to change it.
 
 ### Run the web app
 
@@ -80,6 +82,7 @@ All configuration for the API is read from `api/.env`.
 | Variable             | Required | Description                                                                 |
 | -------------------- | -------- | --------------------------------------------------------------------------- |
 | `PORT`               | No       | Port the API listens on. Defaults to `3000`.                                |
+| `DATABASE_URL`       | Yes      | PostgreSQL connection string. `.env.example` points at the compose database. |
 | `OBSERVE_APP_KEY`    | No       | Key for [NestJS Observe](https://observe.nestjs.com) tracing and metrics.   |
 | `OBSERVE_APP_SECRET` | No       | Secret paired with `OBSERVE_APP_KEY`.                                       |
 
@@ -96,10 +99,13 @@ Observe is optional. Without a key pair the module boots with placeholder creden
 | `yarn build`      | Compile to `dist/`                             |
 | `yarn start:prod` | Run the compiled build from `dist/main`        |
 | `yarn test`       | Run unit tests                                 |
-| `yarn test:e2e`   | Run end-to-end tests                           |
+| `yarn test:e2e`   | Run end-to-end tests against a Testcontainers Postgres |
 | `yarn test:cov`   | Run unit tests with coverage                   |
 | `yarn lint`       | Lint `src/` and `test/` with oxlint            |
 | `yarn format`     | Format source with Prettier                    |
+| `yarn db:generate` | Generate a SQL migration from schema changes   |
+| `yarn db:migrate` | Apply pending migrations without starting the API |
+| `yarn db:studio`  | Browse the database with Drizzle Studio        |
 
 ### `web/`
 
@@ -110,9 +116,23 @@ Observe is optional. Without a key pair the module boots with placeholder creden
 | `yarn watch` | Development build that rebuilds on change       |
 | `yarn test`  | Run unit tests with Vitest                      |
 
+## Database and migrations
+
+The API uses [Drizzle ORM](https://orm.drizzle.team) with PostgreSQL. The schema lives in `api/src/database/schema/`, and the SQL migrations drizzle-kit generates from it live in `api/drizzle/`.
+
+To change the schema:
+
+1. Edit the table definitions in `api/src/database/schema/`.
+2. Run `yarn db:generate` in `api/` to write a new migration to `api/drizzle/`.
+3. Commit the schema change and the generated migration together.
+
+The API applies pending migrations when it starts, so no separate step is needed in development. A deployment that starts several instances at once should instead run `yarn db:migrate` once as a release step, since each instance would otherwise try to migrate at the same time. The `api/drizzle/` directory must ship alongside `dist/` in any deployment artifact.
+
+`yarn test:e2e` starts its own PostgreSQL container with Testcontainers, applies the migrations to it, and removes it afterwards. It never touches the development database.
+
 ## Project status
 
-OpenSurvey is in early development. The API currently exposes a single health-style route and the frontend ships a landing page. Survey authoring, response collection, and results views are the next pieces of work. Expect breaking changes until a first release is tagged.
+OpenSurvey is in early development. The API exposes a single health-style route and a database schema for users, surveys, and polls, and the frontend ships a landing page. Survey authoring, response collection, and results views are the next pieces of work. Expect breaking changes until a first release is tagged.
 
 ## Contributing
 

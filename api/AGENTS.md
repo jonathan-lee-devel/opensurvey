@@ -23,6 +23,16 @@ Validation works with Zod, Valibot, ArkType or any other Standard Schema library
 
 Nest's packages are ESM only, and this project is ESM too: relative imports end in `.js`, `__dirname` doesn't exist (use `import.meta.dirname`), and tests run on Vitest, so mocks are `vi.fn()`, not `jest.fn()`.
 
+## Database: Drizzle ORM
+
+The database is PostgreSQL through [`@nestjs/drizzle`](https://docs.nestjs.com/data/drizzle.md) and Drizzle ORM **0.45** (not the v1 release candidate the Nest docs show: relations use `relations()` from `drizzle-orm`, not `defineRelations`, and the schema is passed to `drizzle()` as `schema`).
+
+- Table definitions live in `src/database/schema/`, one file per aggregate, re-exported from `schema/index.ts`. Inject the database with `@InjectDrizzle() private readonly db: Database`, both exported from `src/database/database.types.ts`.
+- `src/database/database.module.ts` connects using `DATABASE_URL` and runs Drizzle's `migrate()` on startup, so the app always boots against an up-to-date schema.
+- SQL migrations in `drizzle/` are generated: after a schema change run `yarn db:generate` and commit the result. Never edit `drizzle/` by hand, and never gitignore it.
+- Unit tests must not need a database. End-to-end tests get a throwaway PostgreSQL from Testcontainers via `test/global-setup.ts`; do not point them at the compose database or add a CI service container.
+- `docker compose up -d` in `api/` runs a development database on port 5433.
+
 ## Production data: NestJS Observe
 
 This app reports its traces, errors, logs and metrics to [NestJS Observe](https://observe.nestjs.com) through `ObserveModule` in `src/app.module.ts`. Its key pair comes from `OBSERVE_APP_KEY` and `OBSERVE_APP_SECRET` in `.env`, which `npx @nestjs/observe link` writes.
