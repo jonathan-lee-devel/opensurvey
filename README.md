@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="web/public/favicon.svg" alt="OpenSurvey logo" width="96" height="96" />
+</p>
+
 # OpenSurvey
 
 [![CI](https://github.com/jonathan-lee-devel/opensurvey/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathan-lee-devel/opensurvey/actions/workflows/ci.yml)
