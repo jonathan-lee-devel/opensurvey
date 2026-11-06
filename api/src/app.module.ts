@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
+
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { PollsModule } from './polls/polls.module.js';
+import { SurveyModule } from './survey/survey.module.js';
+import { UsersModule } from './users/users.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -15,6 +19,9 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appSecret: process.env.OBSERVE_APP_SECRET ?? 'YOUR_APP_SECRET',
       serviceId: 'api',
     }),
+    SurveyModule,
+    PollsModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
