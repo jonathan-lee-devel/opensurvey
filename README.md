@@ -1,16 +1,16 @@
 # OpenSurvey
 
-**A forever-free, open-source feedback and survey tool.**
+**An open-source, self-hosted feedback and survey tool. MIT licensed.**
 
-OpenSurvey lets you build surveys, collect feedback, and read the results without a paywall. There are no tiers, no response caps, no "upgrade to export" buttons, and no plan to add them. You run it yourself, you own the data, and every feature is available to everyone.
+OpenSurvey lets you build surveys, share a link, and read the results on infrastructure you run. Responses live in a database you control, the code is yours to read and change, and nothing phones home.
 
 The stack is deliberately small: a [NestJS](https://nestjs.com) API and an [Angular](https://angular.dev) frontend, both written in TypeScript.
 
 ## Principles
 
-- **Free forever.** The full product is free to use, self-host, and modify. There is no paid edition.
-- **Open source.** Everything needed to run OpenSurvey lives in this repository.
-- **Own your data.** Responses are stored where you deploy the API. Nothing is sent to a third party unless you configure it.
+- **Open source.** Everything needed to run OpenSurvey lives in this repository under the [MIT License](LICENSE). Read it, fork it, change it, redistribute it.
+- **Self-hosted.** Deploy on a laptop, a VPS, or a container platform. Responses are stored where you deploy the API, and nothing is sent to a third party unless you configure it.
+- **No lock-in.** Your data lives in your database. Export it, migrate it, or delete it without asking anyone for permission.
 - **Simple stack.** One backend, one frontend, one language. Easy to read, easy to contribute to, easy to deploy.
 
 ## Repository layout
