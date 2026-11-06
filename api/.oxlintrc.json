@@ -1,8 +1,33 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "jsPlugins": ["eslint-plugin-perfectionist"],
   "rules": {
     "typescript/no-explicit-any": "off",
-    "typescript/no-floating-promises": "error"
+    "typescript/no-floating-promises": "error",
+    "perfectionist/sort-imports": [
+      "error",
+      {
+        "type": "alphabetical",
+        "order": "asc",
+        "ignoreCase": true,
+        "newlinesBetween": 1,
+        "groups": [
+          ["type-builtin", "value-builtin"],
+          ["type-external", "value-external"],
+          [
+            "type-internal",
+            "value-internal",
+            "type-parent",
+            "value-parent",
+            "type-sibling",
+            "value-sibling",
+            "type-index",
+            "value-index"
+          ],
+          "unknown"
+        ]
+      }
+    ]
   },
   "env": {
     "node": true
