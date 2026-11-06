@@ -24,7 +24,7 @@ describe('LandingPage', () => {
   it('renders a single h1 in the hero', () => {
     const headings = el.querySelectorAll('h1');
     expect(headings.length).toBe(1);
-    expect(headings[0].textContent).toContain('Collect feedback');
+    expect(headings[0].textContent).toContain('Open-source surveys');
   });
 
   it('renders landmarks for header, main navigation, main, and footer', () => {

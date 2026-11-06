@@ -28,7 +28,7 @@
     <nav class="nav" aria-label="Primary">
       <ul class="nav__list">
         <li><a class="nav__link nav__link--page" href="#features">Features</a></li>
-        <li><a class="nav__link nav__link--page" href="#why-free">Why free</a></li>
+        <li><a class="nav__link nav__link--page" href="#why-open-source">Why open source</a></li>
         <li><a class="nav__link nav__link--page" href="#get-started">Get started</a></li>
         <li>
           <a
@@ -54,14 +54,13 @@
 <main id="main" class="main">
   <section class="hero" aria-labelledby="hero-title">
     <div class="shell hero__inner">
-      <p class="eyebrow">Forever free · Open source · Self-hosted</p>
+      <p class="eyebrow">Open source · MIT licensed · Self-hosted</p>
       <h1 id="hero-title" class="hero__title">
-        Collect feedback <span class="accent">without the paywall.</span>
+        Open-source surveys <span class="accent">you host yourself.</span>
       </h1>
       <p class="hero__lead">
-        OpenSurvey is a survey and feedback tool you run yourself. Build a form, share a link, read
-        the results. No plans, no caps, no upgrade prompts. Just the whole product, free, for
-        everyone.
+        OpenSurvey is an MIT-licensed survey and feedback tool that runs on your own infrastructure.
+        Build a form, share a link, read the results. Your responses stay in a database you control.
       </p>
       <div class="actions">
         <a class="btn btn--primary" href="#get-started">Get started</a>
@@ -83,7 +82,7 @@
           tabindex="0"
           aria-label="Quick start commands"
         ><code><span class="comment"># clone, install, run</span>
-<span class="prompt">$</span> git clone https://github.com/&lt;owner&gt;/opensurvey.git
+<span class="prompt">$</span> git clone https://github.com/jonathan-lee-devel/opensurvey.git
 <span class="prompt">$</span> cd opensurvey/api &amp;&amp; yarn install &amp;&amp; yarn start:dev
 <span class="prompt">$</span> cd ../web &amp;&amp; yarn install &amp;&amp; yarn start</code></pre>
       </figure>
@@ -94,8 +93,8 @@
     <div class="shell">
       <h2 id="features-title" class="section__title">Everything a survey tool should do</h2>
       <p class="section__lead">
-        The essentials, done properly, with none of the parts that usually sit behind a checkout
-        page.
+        The essentials, done properly, in a codebase you can read, fork, and deploy on your own
+        terms.
       </p>
 
       <ul class="features" role="list">
@@ -186,18 +185,19 @@
       <blockquote class="hint">
         <strong>Hint</strong>
         OpenSurvey is early in development. The repository today ships this landing page and a
-        NestJS API skeleton. The features above describe where the project is heading, and every one
-        of them will be free when it lands.
+        NestJS API skeleton. The features above describe where the project is heading, and all of it
+        ships under the same MIT license.
       </blockquote>
     </div>
   </section>
 
-  <section id="why-free" class="section section--alt" aria-labelledby="why-title">
+  <section id="why-open-source" class="section section--alt" aria-labelledby="why-title">
     <div class="shell">
-      <h2 id="why-title" class="section__title">Why forever free?</h2>
+      <h2 id="why-title" class="section__title">Why open source and self-hosted?</h2>
       <p class="section__lead">
-        Most survey tools give you a taste and sell you the rest. OpenSurvey starts from the
-        opposite assumption: a feedback tool is infrastructure, and infrastructure should be shared.
+        A feedback tool holds some of the most candid data you collect. OpenSurvey is built so that
+        data never has to leave infrastructure you run, and so the code behind it is always yours to
+        inspect.
       </p>
 
       <ol class="principles" role="list">
@@ -247,10 +247,15 @@
 
 <footer class="footer">
   <div class="shell footer__inner">
-    <p class="footer__brand">OpenSurvey. Free forever, open source, yours to run.</p>
+    <p class="footer__brand">
+      OpenSurvey is open source under the
+      <a [href]="githubUrl + '/blob/main/LICENSE'" target="_blank" rel="noopener noreferrer"
+        >MIT License</a
+      >. Self-host it, fork it, make it yours.
+    </p>
     <ul class="footer__links" role="list">
       <li><a href="#features">Features</a></li>
-      <li><a href="#why-free">Why free</a></li>
+      <li><a href="#why-open-source">Why open source</a></li>
       <li><a href="#get-started">Get started</a></li>
       <li><a [href]="githubUrl" target="_blank" rel="noopener noreferrer">GitHub</a></li>
     </ul>

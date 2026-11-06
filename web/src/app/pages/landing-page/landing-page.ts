@@ -23,8 +23,7 @@ interface Step {
   templateUrl: './landing-page.html',
 })
 export class LandingPage {
-  /** Replace with the canonical repository once it has a public remote. */
-  protected readonly githubUrl = 'https://github.com/<owner>/opensurvey';
+  protected readonly githubUrl = 'https://github.com/jonathan-lee-devel/opensurvey';
 
   protected readonly features: readonly Feature[] = [
     {
@@ -59,22 +58,22 @@ export class LandingPage {
     },
     {
       icon: 'shield',
-      title: 'No tracking, no upsell',
+      title: 'No tracking, no phone-home',
       description:
-        'No analytics beacons, no feature gates, no pricing page. The complete tool is the free tool.',
+        'No analytics beacons and no calls to outside services. The app only talks to the API you deploy.',
     },
   ];
 
   protected readonly principles: readonly Principle[] = [
     {
-      title: 'No tiers',
+      title: 'Your infrastructure',
       description:
-        'There is one edition of OpenSurvey and everybody gets it. Nothing is reserved for a plan that does not exist.',
+        'Deploy on a laptop, a VPS, or a container platform. Responses live in a database you run, under rules you set.',
     },
     {
-      title: 'No response caps',
+      title: 'Your code',
       description:
-        'Collect ten answers or ten thousand. The only limit is the server you choose to run it on.',
+        'OpenSurvey is MIT licensed. Read it, fork it, change it, and redistribute it. The only ask is that the copyright notice travels with it.',
     },
     {
       title: 'No lock-in',
@@ -88,7 +87,7 @@ export class LandingPage {
       title: 'Clone and install',
       description: 'The API and the web app are separate packages. Install dependencies for both.',
       commands: [
-        'git clone https://github.com/<owner>/opensurvey.git',
+        'git clone https://github.com/jonathan-lee-devel/opensurvey.git',
         'cd opensurvey',
         '(cd api && yarn install)',
         '(cd web && yarn install)',

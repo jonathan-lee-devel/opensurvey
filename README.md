@@ -43,7 +43,7 @@ Each directory is an independent package with its own `package.json`, `yarn.lock
 Clone the repository and install dependencies in both packages.
 
 ```bash
-git clone https://github.com/<owner>/opensurvey.git
+git clone https://github.com/jonathan-lee-devel/opensurvey.git
 cd opensurvey
 
 (cd api && yarn install)
@@ -124,4 +124,4 @@ Conventions for the frontend live in [`web/CLAUDE.md`](web/CLAUDE.md) and for th
 
 ## License
 
-OpenSurvey is free and open-source software. A `LICENSE` file has not been committed yet; the license will be added at the repository root before the first tagged release.
+OpenSurvey is released under the [MIT License](LICENSE). Use it, change it, ship it, commercially or otherwise, with no obligation beyond keeping the copyright notice.
