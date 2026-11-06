@@ -17,7 +17,7 @@ Nest has first-party packages for these, so check them before adding another lib
 - Running a scheduled job on one instance, and locks: [`@nestjs/locks`](https://docs.nestjs.com/reliability/locks.md). Processes that take days: [`@nestjs/workflows`](https://docs.nestjs.com/reliability/workflows.md).
 - Language models, tools and agents: [`@nestjs/ai`](https://docs.nestjs.com/ai/overview.md). MCP servers: [`@nestjs/mcp`](https://docs.nestjs.com/mcp/overview.md).
 
-Validation works with Zod, Valibot, ArkType or any other Standard Schema library, with no classes or decorator metadata: `StandardSchemaValidationPipe` with `@Body({ schema })` or `@Param('id', { schema })` (https://docs.nestjs.com/application/validation.md). `class-validator` still works, through `ValidationPipe`.
+Request validation is Zod through `StandardSchemaValidationPipe`, registered globally as `APP_PIPE` in `src/app.module.ts` (https://docs.nestjs.com/application/validation.md). Declare each payload as a Zod schema in a `*.schema.ts` file next to its controller, infer the DTO type from it, and attach it with `@Body({ schema })`, `@Query({ schema })` or `@Param('id', { schema })`; the handler receives the schema's parsed output, so coercion and defaults apply. Use `z.object()` to strip unknown keys or `z.strictObject()` to reject them. Do not add `class-validator` DTOs. `test/validation.e2e-spec.ts` shows the pipe's behaviour end to end.
 
 `NodeAdapter` from `@nestjs/platform-node` is the fastest HTTP adapter, ahead of Fastify (https://docs.nestjs.com/http/performance.md).
 

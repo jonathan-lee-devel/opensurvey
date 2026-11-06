@@ -1,5 +1,6 @@
-import { Module } from '@nestjs/common';
+import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_PIPE } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
 
 import { PollsModule } from './app/polls/polls.module.js';
@@ -40,6 +41,13 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     SurveysModule,
     PollsModule,
     UsersModule,
+  ],
+  providers: [
+    // Validates every @Body/@Query/@Param that declares a Zod `schema` and
+    // passes the parsed value to the handler; parameters without a schema go
+    // through untouched. Registered here rather than in main.ts so e2e tests
+    // that build the app from AppModule get the same behaviour.
+    { provide: APP_PIPE, useClass: StandardSchemaValidationPipe },
   ],
 })
 export class AppModule {}
