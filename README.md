@@ -1,5 +1,7 @@
 # OpenSurvey
 
+[![CI](https://github.com/jonathan-lee-devel/opensurvey/actions/workflows/ci.yml/badge.svg)](https://github.com/jonathan-lee-devel/opensurvey/actions/workflows/ci.yml)
+
 **An open-source, self-hosted feedback and survey tool. MIT licensed.**
 
 OpenSurvey lets you build surveys, share a link, and read the results on infrastructure you run. Responses live in a database you control, the code is yours to read and change, and nothing phones home.
@@ -35,7 +37,7 @@ Each directory is an independent package with its own `package.json`, `yarn.lock
 
 ## Prerequisites
 
-- **Node.js 22 or newer**
+- **Node.js 26** (the version CI runs on; 22 or newer should also work)
 - **Yarn 1.22 (classic).** Both packages pin `yarn@1.22.22` and ship a v1 lockfile.
 
 ## Getting started
@@ -114,7 +116,7 @@ OpenSurvey is in early development. The API currently exposes a single health-st
 
 ## Contributing
 
-Contributions are welcome. Before opening a pull request:
+Contributions are welcome. Every push to `main` and every pull request runs the [CI workflow](.github/workflows/ci.yml), which lints, tests, and builds both packages. Before opening a pull request:
 
 1. Run the tests in the package you touched (`yarn test` in `api/` or `web/`).
 2. Run `yarn lint` in `api/` if you changed backend code.
