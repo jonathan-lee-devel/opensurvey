@@ -1,0 +1,258 @@
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="header">
+  <div class="shell header__inner">
+    <a class="brand" href="/" aria-label="OpenSurvey home">
+      <svg
+        class="brand__mark"
+        viewBox="0 0 32 32"
+        width="32"
+        height="32"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <defs>
+          <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1d5fea" />
+            <stop offset="1" stop-color="#2884ea" />
+          </linearGradient>
+        </defs>
+        <rect width="32" height="32" rx="8" fill="url(#brand-gradient)" />
+        <rect x="7" y="17" width="4" height="8" rx="1.5" fill="#fff" />
+        <rect x="14" y="11" width="4" height="14" rx="1.5" fill="#fff" />
+        <rect x="21" y="7" width="4" height="18" rx="1.5" fill="#fff" />
+      </svg>
+      <span class="brand__name">OpenSurvey</span>
+    </a>
+
+    <nav class="nav" aria-label="Primary">
+      <ul class="nav__list">
+        <li><a class="nav__link nav__link--page" href="#features">Features</a></li>
+        <li><a class="nav__link nav__link--page" href="#why-free">Why free</a></li>
+        <li><a class="nav__link nav__link--page" href="#get-started">Get started</a></li>
+        <li>
+          <a
+            class="nav__link nav__link--github"
+            [href]="githubUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+              <path
+                fill="currentColor"
+                d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.56v-2.17c-3.2.7-3.87-1.37-3.87-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.19 1.76 1.19 1.03 1.76 2.69 1.25 3.35.96.1-.75.4-1.25.73-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.24 2.76.12 3.05.74.8 1.19 1.83 1.19 3.09 0 4.42-2.7 5.4-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z"
+              />
+            </svg>
+            <span>GitHub</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="shell hero__inner">
+      <p class="eyebrow">Forever free · Open source · Self-hosted</p>
+      <h1 id="hero-title" class="hero__title">
+        Collect feedback <span class="accent">without the paywall.</span>
+      </h1>
+      <p class="hero__lead">
+        OpenSurvey is a survey and feedback tool you run yourself. Build a form, share a link, read
+        the results. No plans, no caps, no upgrade prompts. Just the whole product, free, for
+        everyone.
+      </p>
+      <div class="actions">
+        <a class="btn btn--primary" href="#get-started">Get started</a>
+        <a class="btn btn--ghost" [href]="githubUrl" target="_blank" rel="noopener noreferrer">
+          View on GitHub
+        </a>
+      </div>
+
+      <figure class="terminal">
+        <figcaption class="terminal__bar">
+          <span class="terminal__dot" aria-hidden="true"></span>
+          <span class="terminal__dot" aria-hidden="true"></span>
+          <span class="terminal__dot" aria-hidden="true"></span>
+          <span class="terminal__title">terminal</span>
+        </figcaption>
+        <pre
+          class="terminal__body"
+          role="region"
+          tabindex="0"
+          aria-label="Quick start commands"
+        ><code><span class="comment"># clone, install, run</span>
+<span class="prompt">$</span> git clone https://github.com/&lt;owner&gt;/opensurvey.git
+<span class="prompt">$</span> cd opensurvey/api &amp;&amp; yarn install &amp;&amp; yarn start:dev
+<span class="prompt">$</span> cd ../web &amp;&amp; yarn install &amp;&amp; yarn start</code></pre>
+      </figure>
+    </div>
+  </section>
+
+  <section id="features" class="section" aria-labelledby="features-title">
+    <div class="shell">
+      <h2 id="features-title" class="section__title">Everything a survey tool should do</h2>
+      <p class="section__lead">
+        The essentials, done properly, with none of the parts that usually sit behind a checkout
+        page.
+      </p>
+
+      <ul class="features" role="list">
+        @for (feature of features; track feature.title) {
+          <li class="card">
+            <span class="card__icon" aria-hidden="true">
+              @switch (feature.icon) {
+                @case ('builder') {
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M4 6h16M4 12h10M4 18h7M17 15l2 2 4-4"
+                    />
+                  </svg>
+                }
+                @case ('share') {
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"
+                    />
+                  </svg>
+                }
+                @case ('chart') {
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M4 20V10M10 20V4M16 20v-7M22 20H2"
+                    />
+                  </svg>
+                }
+                @case ('server') {
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01"
+                    />
+                  </svg>
+                }
+                @case ('stack') {
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="m12 3 9 5-9 5-9-5 9-5ZM3 13l9 5 9-5M3 17l9 5 9-5"
+                    />
+                  </svg>
+                }
+                @case ('shield') {
+                  <svg viewBox="0 0 24 24" width="22" height="22">
+                    <path
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3ZM9 12l2 2 4-4"
+                    />
+                  </svg>
+                }
+              }
+            </span>
+            <h3 class="card__title">{{ feature.title }}</h3>
+            <p class="card__text">{{ feature.description }}</p>
+          </li>
+        }
+      </ul>
+
+      <blockquote class="hint">
+        <strong>Hint</strong>
+        OpenSurvey is early in development. The repository today ships this landing page and a
+        NestJS API skeleton. The features above describe where the project is heading, and every one
+        of them will be free when it lands.
+      </blockquote>
+    </div>
+  </section>
+
+  <section id="why-free" class="section section--alt" aria-labelledby="why-title">
+    <div class="shell">
+      <h2 id="why-title" class="section__title">Why forever free?</h2>
+      <p class="section__lead">
+        Most survey tools give you a taste and sell you the rest. OpenSurvey starts from the
+        opposite assumption: a feedback tool is infrastructure, and infrastructure should be shared.
+      </p>
+
+      <ol class="principles" role="list">
+        @for (principle of principles; track principle.title; let i = $index) {
+          <li class="principle">
+            <span class="principle__num" aria-hidden="true">0{{ i + 1 }}</span>
+            <h3 class="principle__title">{{ principle.title }}</h3>
+            <p class="principle__text">{{ principle.description }}</p>
+          </li>
+        }
+      </ol>
+    </div>
+  </section>
+
+  <section id="get-started" class="section" aria-labelledby="start-title">
+    <div class="shell">
+      <h2 id="start-title" class="section__title">Get started in three steps</h2>
+      <p class="section__lead">
+        You need Node.js 22 or newer and Yarn 1. Both packages run locally with no other services.
+      </p>
+
+      <ol class="steps" role="list">
+        @for (step of steps; track step.title; let i = $index) {
+          <li class="step">
+            <span class="step__num" aria-hidden="true">{{ i + 1 }}</span>
+            <div class="step__body">
+              <h3 class="step__title">{{ step.title }}</h3>
+              <p class="step__text">{{ step.description }}</p>
+              <pre
+                class="code"
+                role="region"
+                tabindex="0"
+                [attr.aria-label]="step.title + ' commands'"
+              ><code>@for (command of step.commands; track $index) {<span class="line"><span class="prompt">$</span> {{ command }}</span>}</code></pre>
+            </div>
+          </li>
+        }
+      </ol>
+
+      <p class="section__footnote">
+        Full setup notes, configuration, and scripts are in the
+        <a [href]="githubUrl + '#readme'" target="_blank" rel="noopener noreferrer">README</a>.
+      </p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="shell footer__inner">
+    <p class="footer__brand">OpenSurvey. Free forever, open source, yours to run.</p>
+    <ul class="footer__links" role="list">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#why-free">Why free</a></li>
+      <li><a href="#get-started">Get started</a></li>
+      <li><a [href]="githubUrl" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+    </ul>
+  </div>
+</footer>
