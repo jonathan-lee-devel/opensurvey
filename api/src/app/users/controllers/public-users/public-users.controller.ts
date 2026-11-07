@@ -1,16 +1,13 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { eq } from 'drizzle-orm';
 
-import type { Database } from '../../../../database/database.types.js';
-import { InjectDrizzle } from '../../../../database/database.types.js';
-import { users } from '../../../../database/schema/index.js';
+import { PublicUsersService } from '../../services/public-users/public-users.service.js';
 import { publicUserSchema, userIdSchema } from './public-users.schema.js';
 
 @ApiTags('users')
 @Controller('public/users')
 export class PublicUsersController {
-  constructor(@InjectDrizzle() private readonly db: Database) {}
+  constructor(private readonly publicUsers: PublicUsersService) {}
 
   /**
    * Get a user's public profile
@@ -21,12 +18,7 @@ export class PublicUsersController {
   @Get(':id')
   @ApiOkResponse({ standardSchema: publicUserSchema })
   @ApiNotFoundResponse({ description: 'No user has this id.' })
-  async findOne(@Param('id', { schema: userIdSchema }) id: string) {
-    const user = await this.db.query.users.findFirst({
-      columns: { id: true, displayName: true, createdAt: true },
-      where: eq(users.id, id),
-    });
-    if (!user) throw new NotFoundException(`No user "${id}"`);
-    return user;
+  findOne(@Param('id', { schema: userIdSchema }) id: string) {
+    return this.publicUsers.findOne(id);
   }
 }

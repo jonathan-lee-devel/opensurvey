@@ -1,39 +1,26 @@
-import { NotFoundException } from '@nestjs/common';
-import { getDrizzleToken } from '@nestjs/drizzle';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { PublicUsersService } from '../../services/public-users/public-users.service.js';
 import { PublicUsersController } from './public-users.controller.js';
 
 describe('PublicUsersController', () => {
   let controller: PublicUsersController;
-  const findFirst = vi.fn();
+  const findOne = vi.fn();
 
   beforeEach(async () => {
-    findFirst.mockReset();
+    findOne.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicUsersController],
-      providers: [
-        {
-          provide: getDrizzleToken(),
-          useValue: { query: { users: { findFirst } } },
-        },
-      ],
+      providers: [{ provide: PublicUsersService, useValue: { findOne } }],
     }).compile();
 
     controller = module.get<PublicUsersController>(PublicUsersController);
   });
 
-  it('returns the user the database finds', async () => {
+  it('delegates to the service and returns its result', async () => {
     const user = { id: '1', displayName: 'Ada' };
-    findFirst.mockResolvedValue(user);
+    findOne.mockResolvedValue(user);
     await expect(controller.findOne('1')).resolves.toBe(user);
-    expect(findFirst).toHaveBeenCalledOnce();
-  });
-
-  it('answers 404 when no user has the id', async () => {
-    findFirst.mockResolvedValue(undefined);
-    await expect(controller.findOne('missing')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    expect(findOne).toHaveBeenCalledWith('1');
   });
 });

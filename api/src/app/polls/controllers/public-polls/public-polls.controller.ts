@@ -1,16 +1,13 @@
-import { Controller, Get, NotFoundException, Param } from '@nestjs/common';
+import { Controller, Get, Param } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
-import { and, asc, eq } from 'drizzle-orm';
 
-import type { Database } from '../../../../database/database.types.js';
-import { InjectDrizzle } from '../../../../database/database.types.js';
-import { pollOptions, polls } from '../../../../database/schema/index.js';
+import { PublicPollsService } from '../../services/public-polls/public-polls.service.js';
 import { pollSlugSchema, publicPollSchema } from './public-polls.schema.js';
 
 @ApiTags('polls')
 @Controller('public/polls')
 export class PublicPollsController {
-  constructor(@InjectDrizzle() private readonly db: Database) {}
+  constructor(private readonly publicPolls: PublicPollsService) {}
 
   /**
    * Get a published poll by its slug
@@ -21,24 +18,7 @@ export class PublicPollsController {
   @Get(':slug')
   @ApiOkResponse({ standardSchema: publicPollSchema })
   @ApiNotFoundResponse({ description: 'No published poll has this slug.' })
-  async findBySlug(@Param('slug', { schema: pollSlugSchema }) slug: string) {
-    const poll = await this.db.query.polls.findFirst({
-      columns: {
-        id: true,
-        question: true,
-        slug: true,
-        status: true,
-        closesAt: true,
-      },
-      where: and(eq(polls.slug, slug), eq(polls.status, 'published')),
-      with: {
-        options: {
-          columns: { id: true, label: true, position: true },
-          orderBy: asc(pollOptions.position),
-        },
-      },
-    });
-    if (!poll) throw new NotFoundException(`No published poll "${slug}"`);
-    return poll;
+  findBySlug(@Param('slug', { schema: pollSlugSchema }) slug: string) {
+    return this.publicPolls.findBySlug(slug);
   }
 }

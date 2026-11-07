@@ -1,39 +1,26 @@
-import { NotFoundException } from '@nestjs/common';
-import { getDrizzleToken } from '@nestjs/drizzle';
 import { Test, TestingModule } from '@nestjs/testing';
 
+import { PublicSurveysService } from '../../services/public-surveys/public-surveys.service.js';
 import { PublicSurveysController } from './public-surveys.controller.js';
 
 describe('PublicSurveysController', () => {
   let controller: PublicSurveysController;
-  const findFirst = vi.fn();
+  const findBySlug = vi.fn();
 
   beforeEach(async () => {
-    findFirst.mockReset();
+    findBySlug.mockReset();
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PublicSurveysController],
-      providers: [
-        {
-          provide: getDrizzleToken(),
-          useValue: { query: { surveys: { findFirst } } },
-        },
-      ],
+      providers: [{ provide: PublicSurveysService, useValue: { findBySlug } }],
     }).compile();
 
     controller = module.get<PublicSurveysController>(PublicSurveysController);
   });
 
-  it('returns the survey the database finds', async () => {
+  it('delegates to the service and returns its result', async () => {
     const survey = { id: '1', slug: 'feedback', questions: [] };
-    findFirst.mockResolvedValue(survey);
+    findBySlug.mockResolvedValue(survey);
     await expect(controller.findBySlug('feedback')).resolves.toBe(survey);
-    expect(findFirst).toHaveBeenCalledOnce();
-  });
-
-  it('answers 404 when no published survey has the slug', async () => {
-    findFirst.mockResolvedValue(undefined);
-    await expect(controller.findBySlug('missing')).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    expect(findBySlug).toHaveBeenCalledWith('feedback');
   });
 });
