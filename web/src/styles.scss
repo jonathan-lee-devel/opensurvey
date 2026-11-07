@@ -184,3 +184,223 @@ pre {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   Shared primitives used by the landing page and the admin console. Component
+   styles add layout; these keep buttons, fields, tables and badges consistent.
+   --------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-btn);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.13s cubic-bezier(0.25, 0.8, 0.25, 1),
+    box-shadow 0.13s ease,
+    background-color 0.13s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+.btn--primary {
+  color: #fff;
+  background: var(--primary-solid);
+  box-shadow: var(--btn-shadow);
+
+  &:hover:not(:disabled) {
+    box-shadow: var(--btn-shadow-hover);
+  }
+}
+
+.btn--ghost {
+  color: var(--color-1dp);
+  border-color: var(--border-color-strong);
+
+  &:hover:not(:disabled) {
+    background: var(--hover-surface);
+  }
+}
+
+.btn--danger {
+  color: #fff;
+  background: #b42318;
+}
+
+.btn--sm {
+  padding: 7px 12px;
+  font-size: 0.875rem;
+}
+
+.btn--icon {
+  padding: 7px;
+}
+
+/* Form controls */
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  color: var(--color-1dp);
+  font: inherit;
+  font-size: 0.95rem;
+  line-height: 1.4;
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+    border-color: var(--primary);
+  }
+
+  &[aria-invalid='true'] {
+    border-color: #b42318;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  color: var(--color-1dp);
+
+  input {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: var(--primary);
+  }
+}
+
+/* Surfaces */
+.panel {
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--background-1dp);
+}
+
+.panel__title {
+  font-size: 1.0625rem;
+  margin-bottom: 12px;
+}
+
+/* Data tables */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--background-1dp);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+
+  caption {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  th,
+  td {
+    padding: 12px 16px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th {
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  tbody tr:hover td {
+    background: var(--hover-surface);
+  }
+
+  td.num,
+  th.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.table__link {
+  color: var(--color-1dp);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

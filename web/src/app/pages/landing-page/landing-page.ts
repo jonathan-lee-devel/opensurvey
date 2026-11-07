@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 
 interface Feature {
   readonly title: string;
@@ -19,6 +20,7 @@ interface Step {
 
 @Component({
   selector: 'app-landing-page',
+  imports: [RouterLink],
   styleUrl: './landing-page.scss',
   templateUrl: './landing-page.html',
 })

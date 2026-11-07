@@ -1,0 +1,148 @@
+<p class="breadcrumb"><a routerLink="/admin/surveys">← All surveys</a></p>
+
+<app-page-header
+  eyebrow="Surveys"
+  title="New survey"
+  lead="Questions keep the order given. Choice questions need options; the others must not have any."
+/>
+
+<form class="form" novalidate (submit)="save($event)">
+  <section class="panel form__section" aria-labelledby="details-title">
+    <h2 class="panel__title" id="details-title">Details</h2>
+
+    <div class="form__grid">
+      <app-form-field [field]="form.title" label="Title" controlId="title">
+        <input
+          class="input"
+          id="title"
+          type="text"
+          [formField]="form.title"
+          autocomplete="off"
+          (input)="onTitleInput($event)"
+        />
+      </app-form-field>
+
+      <app-form-field
+        [field]="form.slug"
+        label="Slug"
+        controlId="slug"
+        hint="Part of the public link. Suggested from the title until you edit it."
+      >
+        <input
+          class="input mono"
+          id="slug"
+          type="text"
+          [formField]="form.slug"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="slug-hint"
+          (input)="onSlugInput()"
+        />
+      </app-form-field>
+    </div>
+
+    <app-form-field [field]="form.description" label="Description" controlId="description">
+      <textarea
+        class="textarea"
+        id="description"
+        [formField]="form.description"
+        rows="3"
+      ></textarea>
+    </app-form-field>
+
+    <div class="form__grid">
+      <app-form-field
+        [field]="form.ownerId"
+        label="Owner id"
+        controlId="ownerId"
+        hint="The API has no user list yet: paste a user id from the Users page. Users created in this session are suggested."
+      >
+        <input
+          class="input mono"
+          id="ownerId"
+          type="text"
+          [formField]="form.ownerId"
+          list="owner-options"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="ownerId-hint"
+        />
+        <datalist id="owner-options">
+          @for (user of users.entities(); track user.id) {
+            <option [value]="user.id">{{ user.email }}</option>
+          }
+        </datalist>
+      </app-form-field>
+
+      <app-form-field
+        [field]="form.status"
+        label="Status"
+        controlId="status"
+        [optionalHint]="false"
+        hint="Only published surveys answer at the public endpoint."
+      >
+        <select class="select" id="status" [formField]="form.status" aria-describedby="status-hint">
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ status | statusLabel }}</option>
+          }
+        </select>
+      </app-form-field>
+    </div>
+  </section>
+
+  <section class="form__section" aria-labelledby="questions-title">
+    <div class="form__section-head">
+      <h2 class="section-title" id="questions-title">
+        Questions <span class="muted">({{ form.questions().value().length }} of 50)</span>
+      </h2>
+      <button
+        type="button"
+        class="btn btn--ghost btn--sm"
+        [disabled]="form.questions().value().length >= 50"
+        (click)="addQuestion()"
+      >
+        Add question
+      </button>
+    </div>
+
+    @if (form.questions().touched() && form.questions().errors().length > 0) {
+      <p class="form__error" role="alert">
+        @for (error of form.questions().errors(); track $index) {
+          {{ error.message }}
+        }
+      </p>
+    }
+
+    <div class="questions">
+      @for (question of form.questions; track $index; let i = $index) {
+        <app-question-editor
+          [field]="question"
+          [index]="i"
+          [count]="form.questions().value().length"
+          (remove)="removeQuestion(i)"
+          (moveUp)="moveQuestion(i, -1)"
+          (moveDown)="moveQuestion(i, 1)"
+        />
+      }
+    </div>
+  </section>
+
+  @if (form().errors().length > 0) {
+    <div class="form__error form__error--root" role="alert">
+      @for (error of form().errors(); track $index) {
+        <p>{{ error.message }}</p>
+      }
+    </div>
+  }
+
+  <div class="form__actions">
+    <button type="submit" class="btn btn--primary" [disabled]="form().submitting()">
+      @if (form().submitting()) {
+        Creating…
+      } @else {
+        Create survey
+      }
+    </button>
+    <a class="btn btn--ghost" routerLink="/admin/surveys">Cancel</a>
+  </div>
+</form>

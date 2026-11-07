@@ -1,0 +1,124 @@
+<fieldset class="question">
+  <legend class="question__legend">Question {{ index() + 1 }}</legend>
+
+  <div class="question__toolbar">
+    <button
+      type="button"
+      class="btn btn--ghost btn--sm"
+      [disabled]="index() === 0"
+      (click)="moveUp.emit()"
+      [attr.aria-label]="'Move question ' + (index() + 1) + ' up'"
+    >
+      ↑
+    </button>
+    <button
+      type="button"
+      class="btn btn--ghost btn--sm"
+      [disabled]="index() === count() - 1"
+      (click)="moveDown.emit()"
+      [attr.aria-label]="'Move question ' + (index() + 1) + ' down'"
+    >
+      ↓
+    </button>
+    <button
+      type="button"
+      class="btn btn--ghost btn--sm question__remove"
+      [disabled]="count() === 1"
+      (click)="remove.emit()"
+      [attr.aria-label]="'Remove question ' + (index() + 1)"
+    >
+      Remove
+    </button>
+  </div>
+
+  <div class="question__grid">
+    <app-form-field [field]="field().prompt" label="Prompt" [controlId]="idPrefix() + '-prompt'">
+      <input
+        class="input"
+        type="text"
+        [id]="idPrefix() + '-prompt'"
+        [formField]="field().prompt"
+        autocomplete="off"
+      />
+    </app-form-field>
+
+    <app-form-field
+      [field]="field().type"
+      label="Type"
+      [controlId]="idPrefix() + '-type'"
+      [optionalHint]="false"
+    >
+      <select
+        class="select"
+        [id]="idPrefix() + '-type'"
+        [formField]="field().type"
+        (change)="onTypeChange($event)"
+      >
+        @for (type of types; track type) {
+          <option [value]="type">{{ typeLabels[type] }}</option>
+        }
+      </select>
+    </app-form-field>
+  </div>
+
+  <label class="checkbox">
+    <input type="checkbox" [formField]="field().required" />
+    <span>Respondents must answer this question</span>
+  </label>
+
+  @if (isChoice()) {
+    <div class="options" role="group" [attr.aria-labelledby]="idPrefix() + '-options-label'">
+      <p class="options__label" [id]="idPrefix() + '-options-label'">
+        Options <span class="muted">(2 to 20, in display order)</span>
+      </p>
+      <ol class="options__list">
+        @for (option of field().options; track $index; let i = $index) {
+          <li class="option">
+            <label class="visually-hidden" [for]="idPrefix() + '-option-' + i"
+              >Option {{ i + 1 }}</label
+            >
+            <input
+              class="input"
+              type="text"
+              [id]="idPrefix() + '-option-' + i"
+              [formField]="option"
+              autocomplete="off"
+              [attr.aria-invalid]="option().invalid() && option().touched()"
+            />
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm"
+              [disabled]="field().options().value().length <= 2"
+              (click)="removeOption(i)"
+              [attr.aria-label]="'Remove option ' + (i + 1)"
+            >
+              Remove
+            </button>
+            @if (option().invalid() && option().touched()) {
+              <p class="option__error">
+                @for (error of option().errors(); track $index) {
+                  {{ error.message ?? 'Enter a label.' }}
+                }
+              </p>
+            }
+          </li>
+        }
+      </ol>
+      @if (showOptionsError()) {
+        <p class="options__error" role="alert">
+          @for (error of optionsState().errors(); track $index) {
+            {{ error.message }}
+          }
+        </p>
+      }
+      <button
+        type="button"
+        class="btn btn--ghost btn--sm"
+        [disabled]="field().options().value().length >= 20"
+        (click)="addOption()"
+      >
+        Add option
+      </button>
+    </div>
+  }
+</fieldset>

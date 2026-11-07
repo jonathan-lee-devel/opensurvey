@@ -1,0 +1,90 @@
+<app-page-header
+  eyebrow="Surveys"
+  title="All surveys"
+  lead="Every survey on this instance, newest first. Open one to read its questions and submissions."
+>
+  <a class="btn btn--primary" routerLink="new">New survey</a>
+</app-page-header>
+
+<div class="toolbar">
+  <div class="segmented" role="radiogroup" aria-label="Filter by status">
+    <button
+      type="button"
+      role="radio"
+      class="segmented__option"
+      [attr.aria-checked]="store.status() === null"
+      (click)="filter(null)"
+    >
+      All
+    </button>
+    @for (status of statuses; track status) {
+      <button
+        type="button"
+        role="radio"
+        class="segmented__option"
+        [attr.aria-checked]="store.status() === status"
+        (click)="filter(status)"
+      >
+        {{ status | statusLabel }}
+      </button>
+    }
+  </div>
+</div>
+
+@if (store.error(); as message) {
+  <app-error-banner [message]="message" (retry)="store.reload()" />
+} @else if (store.isPending() && store.entities().length === 0) {
+  <app-loading-indicator label="Loading surveys…" />
+} @else if (store.entities().length === 0) {
+  <app-empty-state
+    title="No surveys yet"
+    [text]="
+      store.status()
+        ? 'Nothing has this status. Try another filter.'
+        : 'Create the first survey and share its link to start collecting answers.'
+    "
+  >
+    @if (!store.status()) {
+      <a class="btn btn--primary" routerLink="new">New survey</a>
+    }
+  </app-empty-state>
+} @else {
+  <div class="table-wrap" [attr.aria-busy]="store.isPending()">
+    <table class="table">
+      <caption>
+        Surveys, newest first
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Title</th>
+          <th scope="col">Slug</th>
+          <th scope="col">Status</th>
+          <th scope="col">Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (survey of store.entities(); track survey.id) {
+          <tr>
+            <td>
+              <a class="table__link" [routerLink]="[survey.id]">{{ survey.title }}</a>
+              @if (survey.description) {
+                <p class="muted survey-description">{{ survey.description }}</p>
+              }
+            </td>
+            <td>
+              <code>{{ survey.slug }}</code>
+            </td>
+            <td><app-status-badge [status]="survey.status" /></td>
+            <td class="muted">{{ survey.updatedAt | date: 'medium' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <app-pager
+    [total]="store.total()"
+    [limit]="store.limit()"
+    [offset]="store.offset()"
+    (pageChange)="page($event)"
+  />
+}

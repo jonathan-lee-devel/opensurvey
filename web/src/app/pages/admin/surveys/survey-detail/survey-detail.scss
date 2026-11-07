@@ -1,0 +1,165 @@
+:host {
+  display: block;
+}
+
+.breadcrumb {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+
+  a {
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 960px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.description {
+  margin-bottom: 16px;
+}
+
+.meta {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.meta__row {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+
+  dt {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    padding-top: 2px;
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+.meta__value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.meta__code {
+  word-break: break-all;
+}
+
+.note {
+  margin-top: 16px;
+  font-size: 0.875rem;
+}
+
+.questions {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.question__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.question__prompt {
+  color: var(--color-1dp);
+  font-weight: 600;
+}
+
+.question__required {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--active-surface);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.question__type {
+  font-size: 0.85rem;
+}
+
+.options {
+  margin: 6px 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.section-title {
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+}
+
+.client {
+  max-width: 22rem;
+}
+
+.client__agent {
+  display: block;
+  max-width: 22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.client__referer {
+  display: block;
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.answers summary {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.answers__list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  min-width: 18rem;
+}
+
+.answers__row {
+  dt {
+    color: var(--color-muted);
+    font-size: 0.8125rem;
+  }
+
+  dd {
+    margin: 0;
+    color: var(--color-1dp);
+  }
+}

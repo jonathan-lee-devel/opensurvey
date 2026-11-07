@@ -1,0 +1,151 @@
+<p class="breadcrumb"><a routerLink="/admin/surveys">← All surveys</a></p>
+
+@if (store.error(); as message) {
+  <app-error-banner [message]="message" (retry)="store.reload()" />
+} @else if (!store.survey()) {
+  <app-loading-indicator label="Loading survey…" />
+} @else if (store.survey(); as survey) {
+  <app-page-header eyebrow="Survey" [title]="survey.title">
+    <app-status-badge [status]="survey.status" />
+  </app-page-header>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="about-title">
+      <h2 class="panel__title" id="about-title">About</h2>
+      @if (survey.description) {
+        <p class="description">{{ survey.description }}</p>
+      }
+      <dl class="meta">
+        <div class="meta__row">
+          <dt>Slug</dt>
+          <dd class="meta__value">
+            <code>{{ survey.slug }}</code>
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Public endpoint</dt>
+          <dd class="meta__value">
+            <code class="meta__code">{{ publicUrl(survey.slug) }}</code>
+            <app-copy-button [value]="publicUrl(survey.slug)" label="public endpoint" />
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Owner</dt>
+          <dd class="meta__value">
+            <code class="meta__code">{{ survey.ownerId }}</code>
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Created</dt>
+          <dd class="meta__value">{{ survey.createdAt | date: 'medium' }}</dd>
+        </div>
+        <div class="meta__row">
+          <dt>Updated</dt>
+          <dd class="meta__value">{{ survey.updatedAt | date: 'medium' }}</dd>
+        </div>
+      </dl>
+      @if (survey.status !== 'published') {
+        <p class="note muted">
+          Only published surveys are visible at the public endpoint. Changing a survey's status is
+          not available in the API yet.
+        </p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="questions-title">
+      <h2 class="panel__title" id="questions-title">Questions ({{ survey.questions.length }})</h2>
+      <ol class="questions">
+        @for (question of survey.questions; track question.id) {
+          <li class="question">
+            <div class="question__head">
+              <span class="question__prompt">{{ question.prompt }}</span>
+              @if (question.required) {
+                <span class="question__required">Required</span>
+              }
+            </div>
+            <p class="question__type muted">{{ question.type | questionTypeLabel }}</p>
+            @if (question.options; as options) {
+              <ul class="options">
+                @for (option of options; track $index) {
+                  <li>{{ option }}</li>
+                }
+              </ul>
+            }
+          </li>
+        }
+      </ol>
+    </section>
+  </div>
+
+  <section class="submissions" aria-labelledby="submissions-title">
+    <h2 class="section-title" id="submissions-title">
+      Submissions <span class="muted">({{ store.total() }})</span>
+    </h2>
+
+    @if (store.entities().length === 0) {
+      <app-empty-state
+        title="No submissions yet"
+        text="Answers posted to the public endpoint appear here, newest first, with the request details they were recorded with."
+      />
+    } @else {
+      <div class="table-wrap" [attr.aria-busy]="store.isPending()">
+        <table class="table">
+          <caption>
+            Submissions, newest first
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Submitted</th>
+              <th scope="col">Respondent</th>
+              <th scope="col">IP address</th>
+              <th scope="col">Client</th>
+              <th scope="col">Answers</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (submission of store.entities(); track submission.id) {
+              <tr>
+                <td>{{ submission.submittedAt | date: 'medium' }}</td>
+                <td class="muted">
+                  @if (submission.respondentId) {
+                    <code class="mono">{{ submission.respondentId }}</code>
+                  } @else {
+                    Anonymous
+                  }
+                </td>
+                <td>
+                  <code class="mono">{{ submission.ipAddress ?? '—' }}</code>
+                </td>
+                <td class="client" [title]="submission.userAgent ?? ''">
+                  <span class="client__agent">{{ submission.userAgent ?? '—' }}</span>
+                  @if (submission.referer) {
+                    <span class="muted client__referer">from {{ submission.referer }}</span>
+                  }
+                </td>
+                <td>
+                  <details class="answers">
+                    <summary>{{ submission.answers.length }} answers</summary>
+                    <dl class="answers__list">
+                      @for (answer of submission.answers; track answer.id) {
+                        <div class="answers__row">
+                          <dt>{{ answer.question.prompt }}</dt>
+                          <dd>{{ formatAnswer(answer) }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  </details>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager
+        [total]="store.total()"
+        [limit]="store.limit()"
+        [offset]="store.offset()"
+        (pageChange)="page($event)"
+      />
+    }
+  </section>
+}

@@ -916,6 +916,20 @@
   dependencies:
     "@tybys/wasm-util" "^0.10.3"
 
+"@ngrx/operators@^22.0.1":
+  version "22.0.1"
+  resolved "https://registry.yarnpkg.com/@ngrx/operators/-/operators-22.0.1.tgz#c10a315519fd0e5453ee70892ab0c420e2ad5a4e"
+  integrity sha512-UyF1ESIKX8sClhXCz4/B+YhC4Baa4sZ4O0neHzMwdqFxvXg4P19AT6+RQ5lNCuwmYt/aH1dZuHr+EBaQSRFNyQ==
+  dependencies:
+    tslib "^2.3.0"
+
+"@ngrx/signals@^22.0.1":
+  version "22.0.1"
+  resolved "https://registry.yarnpkg.com/@ngrx/signals/-/signals-22.0.1.tgz#5a48eded9f47ab634ef32fdd704a5bff45ae8813"
+  integrity sha512-R62VsPrnH54LgA3LAqw+GWA9FHii526CH1aqah8aiK1RZocp+3N9rS3g5wrrXU655eVH65jhN4k/k+EFyxO/RA==
+  dependencies:
+    tslib "^2.3.0"
+
 "@oxc-parser/binding-android-arm-eabi@0.156.0":
   version "0.156.0"
   resolved "https://registry.yarnpkg.com/@oxc-parser/binding-android-arm-eabi/-/binding-android-arm-eabi-0.156.0.tgz#16c69d14b48d8ad290e5113e609796b373a567e3"
@@ -1280,6 +1294,13 @@ ajv@8.20.0, ajv@^8.0.0:
     fast-uri "^3.0.1"
     json-schema-traverse "^1.0.0"
     require-from-string "^2.0.2"
+
+angular-oauth2-oidc@^22.0.2:
+  version "22.0.2"
+  resolved "https://registry.yarnpkg.com/angular-oauth2-oidc/-/angular-oauth2-oidc-22.0.2.tgz#c8488be86c49b8a9abd0c5f2a221f1250bb2e1c3"
+  integrity sha512-MDzmf0quLVnsCzVp/G7Pr6YTSMoMMo62u8QFqJzM3madQmWV5JI4dMppvuTPswH+4V2gx4zPXdCjnn8ikVZX+A==
+  dependencies:
+    tslib "^2.5.2"
 
 ansi-escapes@^7.3.0:
   version "7.3.0"
@@ -2522,7 +2543,7 @@ tr46@^7.0.0:
   dependencies:
     punycode "^2.3.1"
 
-tslib@^2.1.0, tslib@^2.3.0, tslib@^2.4.0:
+tslib@^2.1.0, tslib@^2.3.0, tslib@^2.4.0, tslib@^2.5.2:
   version "2.9.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.9.1.tgz#8986213ba2f17f38ba39a7c43d0e565a9134ff5f"
   integrity sha512-a4Ux9VKuIMHsOS7ENbEq6hK2ZGYIT27Rtl0E4eD9KqwxhKiQeMZE/9xb3IdYwWaSOyIBQLExhQgXDTYoiCxnWA==

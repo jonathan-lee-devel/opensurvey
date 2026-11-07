@@ -1,0 +1,221 @@
+<app-page-header
+  eyebrow="Polls"
+  title="Polls"
+  lead="A poll is one question with a fixed set of options. Options keep the order given."
+/>
+
+<div class="layout">
+  <form class="panel form" novalidate (submit)="save($event)" aria-labelledby="create-title">
+    <h2 class="panel__title" id="create-title">Create a poll</h2>
+
+    <app-form-field [field]="form.question" label="Question" controlId="question">
+      <input
+        class="input"
+        id="question"
+        type="text"
+        [formField]="form.question"
+        autocomplete="off"
+        (input)="onQuestionInput($event)"
+      />
+    </app-form-field>
+
+    <app-form-field
+      [field]="form.slug"
+      label="Slug"
+      controlId="slug"
+      hint="Part of the public link. Suggested from the question until you edit it."
+    >
+      <input
+        class="input mono"
+        id="slug"
+        type="text"
+        [formField]="form.slug"
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="slug-hint"
+        (input)="onSlugInput()"
+      />
+    </app-form-field>
+
+    <app-form-field
+      [field]="form.ownerId"
+      label="Owner id"
+      controlId="ownerId"
+      hint="Paste a user id from the Users page; users created this session are suggested."
+    >
+      <input
+        class="input mono"
+        id="ownerId"
+        type="text"
+        [formField]="form.ownerId"
+        list="poll-owner-options"
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="ownerId-hint"
+      />
+      <datalist id="poll-owner-options">
+        @for (user of users.entities(); track user.id) {
+          <option [value]="user.id">{{ user.email }}</option>
+        }
+      </datalist>
+    </app-form-field>
+
+    <div class="form__grid">
+      <app-form-field
+        [field]="form.status"
+        label="Status"
+        controlId="status"
+        [optionalHint]="false"
+      >
+        <select class="select" id="status" [formField]="form.status">
+          @for (status of statuses; track status) {
+            <option [value]="status">{{ status | statusLabel }}</option>
+          }
+        </select>
+      </app-form-field>
+
+      <app-form-field
+        [field]="form.closesAt"
+        label="Closes at"
+        controlId="closesAt"
+        hint="Leave empty to keep the poll open."
+      >
+        <input
+          class="input"
+          id="closesAt"
+          type="datetime-local"
+          [formField]="form.closesAt"
+          aria-describedby="closesAt-hint"
+        />
+      </app-form-field>
+    </div>
+
+    <div class="options" role="group" aria-labelledby="options-label">
+      <p class="options__label" id="options-label">
+        Options <span class="muted">(2 to 20, in display order)</span>
+      </p>
+      <ol class="options__list">
+        @for (option of form.options; track $index; let i = $index) {
+          <li class="option">
+            <label class="visually-hidden" [for]="'option-' + i">Option {{ i + 1 }}</label>
+            <input
+              class="input"
+              type="text"
+              [id]="'option-' + i"
+              [formField]="option"
+              autocomplete="off"
+              [attr.aria-invalid]="option().invalid() && option().touched()"
+            />
+            <button
+              type="button"
+              class="btn btn--ghost btn--sm"
+              [disabled]="form.options().value().length <= 2"
+              (click)="removeOption(i)"
+              [attr.aria-label]="'Remove option ' + (i + 1)"
+            >
+              Remove
+            </button>
+            @if (option().invalid() && option().touched()) {
+              <p class="option__error">
+                @for (error of option().errors(); track $index) {
+                  {{ error.message ?? 'Enter a label.' }}
+                }
+              </p>
+            }
+          </li>
+        }
+      </ol>
+      @if (form.options().errors().length > 0 && form.options().touched()) {
+        <p class="option__error" role="alert">
+          @for (error of form.options().errors(); track $index) {
+            {{ error.message }}
+          }
+        </p>
+      }
+      <button
+        type="button"
+        class="btn btn--ghost btn--sm"
+        [disabled]="form.options().value().length >= 20"
+        (click)="addOption()"
+      >
+        Add option
+      </button>
+    </div>
+
+    @if (form().errors().length > 0) {
+      <div class="form__error" role="alert">
+        @for (error of form().errors(); track $index) {
+          <p>{{ error.message }}</p>
+        }
+      </div>
+    }
+
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary" [disabled]="form().submitting()">
+        @if (form().submitting()) {
+          Creating…
+        } @else {
+          Create poll
+        }
+      </button>
+    </div>
+  </form>
+
+  <section aria-labelledby="created-title">
+    <h2 class="section-title" id="created-title">
+      Created this session <span class="muted">({{ polls.entities().length }})</span>
+    </h2>
+    <p class="muted note">
+      The API cannot list polls yet, so only polls created in this browser session appear here.
+    </p>
+
+    @if (polls.entities().length === 0) {
+      <app-empty-state
+        title="No polls created yet"
+        text="New polls show up here with their options."
+      />
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <caption>
+            Polls created in this session, newest first
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Question</th>
+              <th scope="col">Slug</th>
+              <th scope="col">Status</th>
+              <th scope="col">Closes</th>
+              <th scope="col">Options</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (poll of polls.entities(); track poll.id) {
+              <tr>
+                <td>{{ poll.question }}</td>
+                <td>
+                  <code>{{ poll.slug }}</code>
+                </td>
+                <td><app-status-badge [status]="poll.status" /></td>
+                <td class="muted">
+                  @if (poll.closesAt) {
+                    {{ poll.closesAt | date: 'medium' }}
+                  } @else {
+                    Open
+                  }
+                </td>
+                <td>
+                  <ol class="poll-options">
+                    @for (option of poll.options; track option.id) {
+                      <li>{{ option.label }}</li>
+                    }
+                  </ol>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>

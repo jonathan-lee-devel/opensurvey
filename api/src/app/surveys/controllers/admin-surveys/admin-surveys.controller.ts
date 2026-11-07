@@ -28,7 +28,6 @@ import {
 
 @ApiTags('surveys')
 @Controller('admin/surveys')
-// Needs a Bearer token (AuthGuard, the default); documented for Swagger UI.
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token.' })
 export class AdminSurveysController {

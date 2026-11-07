@@ -1,9 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { ToastHost } from './common/toast-host/toast-host';
+
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ToastHost],
   selector: 'app-root',
-  template: '<router-outlet />',
+  template: '<router-outlet /><app-toast-host />',
 })
 export class App {}

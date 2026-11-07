@@ -1,0 +1,103 @@
+<app-page-header
+  eyebrow="Users"
+  title="Users"
+  lead="Users own surveys and polls. Create one here and copy its id into the owner field of a new survey."
+/>
+
+<div class="layout">
+  <form class="panel form" novalidate (submit)="save($event)" aria-labelledby="create-title">
+    <h2 class="panel__title" id="create-title">Create a user</h2>
+
+    <app-form-field
+      [field]="form.email"
+      label="Email"
+      controlId="email"
+      hint="Stored lowercased; must be unique."
+    >
+      <input
+        class="input"
+        id="email"
+        type="email"
+        [formField]="form.email"
+        autocomplete="off"
+        spellcheck="false"
+        aria-describedby="email-hint"
+      />
+    </app-form-field>
+
+    <app-form-field [field]="form.displayName" label="Display name" controlId="displayName">
+      <input
+        class="input"
+        id="displayName"
+        type="text"
+        [formField]="form.displayName"
+        autocomplete="off"
+      />
+    </app-form-field>
+
+    @if (form().errors().length > 0) {
+      <div class="form__error" role="alert">
+        @for (error of form().errors(); track $index) {
+          <p>{{ error.message }}</p>
+        }
+      </div>
+    }
+
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary" [disabled]="form().submitting()">
+        @if (form().submitting()) {
+          Creating…
+        } @else {
+          Create user
+        }
+      </button>
+    </div>
+  </form>
+
+  <section aria-labelledby="created-title">
+    <h2 class="section-title" id="created-title">
+      Created this session <span class="muted">({{ users.entities().length }})</span>
+    </h2>
+    <p class="muted note">
+      The API cannot list users yet, so only users created in this browser session appear here.
+    </p>
+
+    @if (users.entities().length === 0) {
+      <app-empty-state
+        title="No users created yet"
+        text="New users show up here with their id ready to copy."
+      />
+    } @else {
+      <div class="table-wrap">
+        <table class="table">
+          <caption>
+            Users created in this session, newest first
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col">Email</th>
+              <th scope="col">Display name</th>
+              <th scope="col">Id</th>
+              <th scope="col">Created</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users.entities(); track user.id) {
+              <tr>
+                <td>{{ user.email }}</td>
+                <td>{{ user.displayName ?? '—' }}</td>
+                <td>
+                  <span class="id">
+                    <code class="mono">{{ user.id }}</code>
+                    <app-copy-button [value]="user.id" [label]="'id of ' + user.email" />
+                  </span>
+                </td>
+                <td class="muted">{{ user.createdAt | date: 'medium' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</div>

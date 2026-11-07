@@ -1,0 +1,50 @@
+:host {
+  display: block;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 3px;
+  border: 1px solid var(--border-color-strong);
+  border-radius: var(--radius-btn);
+  background: var(--background-1dp);
+}
+
+.segmented__option {
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-1dp);
+  }
+
+  &[aria-checked='true'] {
+    background: var(--active-surface);
+    color: var(--primary);
+  }
+}
+
+.survey-description {
+  margin-top: 2px;
+  max-width: 48ch;
+  font-size: 0.875rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
