@@ -27,8 +27,9 @@ Nest's packages are ESM only, and this project is ESM too: relative imports end 
 
 `src/swagger.ts` exports `setupSwagger(app)`, which `src/main.ts` calls before `listen()`: Swagger UI at http://localhost:3000/docs, the raw document at `/docs-json` and `/docs-yaml`. It is not part of `AppModule`, so an e2e test that needs it must call `setupSwagger(app)` before `app.init()` (`test/swagger.e2e-spec.ts`).
 
-- Request schemas come from the Zod schemas already attached with `@Body({ schema })`, `@Query({ schema })` and `@Param(..., { schema })`; Zod 4.2+ converts itself, so no `@ApiBody`/`@ApiProperty` duplication is needed for them. Response types still need `@ApiOkResponse({ type })` or similar, and classes used there need `@ApiProperty()` or the CLI plugin.
-- The `@nestjs/swagger` CLI plugin is enabled in `nest-cli.json` with `introspectComments: true`, so a JSDoc comment on a handler becomes its `summary`/`description`; `classValidatorShim` is off because this app has no class-validator DTOs. The plugin runs under `nest build`/`nest start` only, not under Vitest, so e2e tests see the document without plugin-derived metadata.
+- Request schemas come from the Zod schemas already attached with `@Body({ schema })`, `@Query({ schema })` and `@Param(..., { schema })`; Zod 4.2+ converts itself, so no `@ApiBody`/`@ApiProperty` duplication is needed for them.
+- The `@nestjs/swagger` CLI plugin is enabled in `nest-cli.json` with `introspectComments: true`: the JSDoc comment on a handler becomes its `summary` (keep it to one line) and a `@remarks` tag becomes its `description`; `classValidatorShim` is off because this app has no class-validator DTOs. The plugin runs under `nest build`/`nest start` only, not under Vitest, so e2e tests see the document without plugin-derived metadata. `nest start --watch` reads `nest-cli.json` once at startup, so restart it after changing plugin options.
+- Response shapes are Zod too: `@ApiOkResponse({ standardSchema: publicPollSchema })` with the schema in the controller's `*.schema.ts`. Select only the columns the schema lists, so nothing private leaks.
 - Group routes with `@ApiTags('polls')` on the controller.
 
 ## Database: Drizzle ORM

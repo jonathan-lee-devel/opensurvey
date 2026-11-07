@@ -36,6 +36,29 @@ describe('Swagger (e2e)', () => {
     expect(response.body.info.title).toBe('OpenSurvey API');
   });
 
+  it('documents the public routes from their Zod schemas', async () => {
+    const { body } = await request(app.getHttpServer()).get(
+      `/${DOCS_PATH}-json`,
+    );
+    expect(Object.keys(body.paths).sort()).toEqual([
+      '/public/polls/{slug}',
+      '/public/surveys/{slug}',
+      '/public/users/{id}',
+    ]);
+    const get = body.paths['/public/users/{id}'].get;
+    expect(get.tags).toEqual(['users']);
+    expect(get.parameters[0]).toMatchObject({
+      name: 'id',
+      in: 'path',
+      required: true,
+      schema: { type: 'string', format: 'uuid' },
+    });
+    expect(
+      get.responses['200'].content['application/json'].schema,
+    ).toBeDefined();
+    expect(get.responses['404']).toBeDefined();
+  });
+
   afterAll(async () => {
     await app.close();
   });
