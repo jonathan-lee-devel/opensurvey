@@ -2,7 +2,7 @@ import { Controller, Get, INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import request from 'supertest';
 
 import { AppModule } from './../src/app.module.js';
