@@ -1,7 +1,9 @@
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_PIPE } from '@nestjs/core';
+import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { PollsModule } from './app/polls/polls.module.js';
 import { SurveysModule } from './app/surveys/surveys.module.js';
@@ -37,6 +39,26 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         serviceId: 'api',
       }),
     }),
+    // Rate limiting. One throttler named `default` limits every route to
+    // THROTTLE_LIMIT requests per client IP per THROTTLE_TTL_MS, enforced by
+    // the global ThrottlerGuard below. Counters live in Redis so all API
+    // instances share them; the storage service owns the connection and closes
+    // it on shutdown. Override per route with @Throttle() or @SkipThrottle().
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: EnvService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: config.get('THROTTLE_TTL_MS', { infer: true }),
+            limit: config.get('THROTTLE_LIMIT', { infer: true }),
+          },
+        ],
+        storage: new ThrottlerStorageRedisService(
+          config.getOrThrow('REDIS_URL', { infer: true }),
+        ),
+      }),
+    }),
     DatabaseModule,
     SurveysModule,
     PollsModule,
@@ -48,6 +70,9 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     // through untouched. Registered here rather than in main.ts so e2e tests
     // that build the app from AppModule get the same behaviour.
     { provide: APP_PIPE, useClass: StandardSchemaValidationPipe },
+    // Applies the ThrottlerModule limits to every route and answers 429 with
+    // Retry-After and X-RateLimit-* headers once a client exceeds them.
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })
 export class AppModule {}

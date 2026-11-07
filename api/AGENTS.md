@@ -32,8 +32,22 @@ The database is PostgreSQL through [`@nestjs/drizzle`](https://docs.nestjs.com/d
 - `src/database/database.module.ts` connects using `DATABASE_URL` and runs Drizzle's `migrate()` on startup, so the app always boots against an up-to-date schema.
 - Configuration comes from [`@nestjs/config`](https://docs.nestjs.com/application/configuration.md): `ConfigModule.forRoot()` in `src/app.module.ts` is global, loads `.env` and validates it against the Zod schema in `src/config/env.schema.ts`, which also exports the typed `EnvService`. Declare a variable in that schema (and in `.env.example`) before reading it, then inject `ConfigService` and call `get('NAME', { infer: true })` (or `getOrThrow`) instead of reading `process.env`. The only direct reads are `drizzle.config.ts`, which drizzle-kit runs outside Nest, and `test/global-setup.ts`, which feeds the Testcontainers URL into the environment.
 - SQL migrations in `drizzle/` are generated: after a schema change run `yarn db:generate` and commit the result. Never edit `drizzle/` by hand, and never gitignore it.
-- Unit tests must not need a database. End-to-end tests get a throwaway PostgreSQL from Testcontainers via `test/global-setup.ts`; do not point them at the compose database or add a CI service container.
-- `docker compose up -d` in `api/` runs a development database on port 5433.
+- Unit tests must not need a database. End-to-end tests get a throwaway PostgreSQL (and Redis, for the rate limiter) from Testcontainers via `test/global-setup.ts`; do not point them at the compose services or add a CI service container.
+- `docker compose --profile infrastructure up -d` at the repository root runs a development PostgreSQL on port 5433 and Redis on port 6380, which `.env.example` points at.
+
+## Rate limiting: @nestjs/throttler
+
+Every route is rate limited by [`@nestjs/throttler`](https://docs.nestjs.com/security/rate-limiting.md): `ThrottlerModule.forRootAsync()` in `src/app.module.ts` configures one throttler named `default`, and `ThrottlerGuard` is registered globally as `APP_GUARD` next to the validation pipe, so e2e tests built from `AppModule` get it too.
+
+- The defaults come from `THROTTLE_LIMIT` requests per `THROTTLE_TTL_MS` window per client IP (100 per minute unless `.env` says otherwise). `ttl` values are milliseconds everywhere in this package.
+- Counters live in Redis (`REDIS_URL`) through `ThrottlerStorageRedisService` from `@nest-lab/throttler-storage-redis`, so every API instance shares them. The storage owns its ioredis connection and closes it on shutdown. Never swap in the in-memory storage: it would silently give each instance its own budget.
+- Keys are per controller, handler and client IP, so routes do not share a budget. Tighten a route with `@Throttle({ default: { limit, ttl } })`, exempt it with `@SkipThrottle()`; both work on a controller class too. Do not hand-roll limits in handlers.
+- Over the limit the guard answers 429 with `Retry-After` and `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers. `test/throttler.e2e-spec.ts` covers this end to end against the Testcontainers Redis.
+- Behind a reverse proxy set `TRUST_PROXY` (Express's `trust proxy` value, applied in `src/main.ts`), otherwise every client shares the proxy's address and its budget. In the compose `app` profile it is `1`: nginx in the `web` container is the only hop.
+
+## Docker
+
+`Dockerfile` builds the API on `node:26-alpine` (Yarn 1 is installed with npm because Node 26 images no longer bundle it) and runs `node dist/main.js` as the `node` user, with `drizzle/` copied next to `dist/` so startup migrations resolve. The repository's `docker-compose.yml` has two profiles: `infrastructure` (PostgreSQL + Redis for local development) and `app` (those plus this API and the web app, reachable through the web container at http://localhost:8080/api/). The API is deliberately not published to the host in the `app` profile; see the comments in that file.
 
 ## Production data: NestJS Observe
 

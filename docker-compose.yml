@@ -1,0 +1,85 @@
+# Two profiles, pick one with `docker compose --profile <name> up -d`:
+#
+#   infrastructure  PostgreSQL and Redis only, published on host ports 5433 and
+#                   6380 for an API started with `yarn start:dev` in api/
+#                   (api/.env.example already points at them).
+#
+#   app             Everything: builds api/Dockerfile and web/Dockerfile and runs
+#                   the full stack. Only the web server is published, on
+#                   http://localhost:8080; it proxies /api/ to the API container.
+#
+# Tests use neither. `yarn test:e2e` in api/ starts its own throwaway PostgreSQL
+# and Redis with Testcontainers.
+name: opensurvey
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    profiles: [infrastructure, app]
+    environment:
+      POSTGRES_USER: opensurvey
+      POSTGRES_PASSWORD: opensurvey
+      POSTGRES_DB: opensurvey
+    ports:
+      # Host port 5433 so this does not clash with a Postgres already on 5432.
+      - '5433:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U opensurvey -d opensurvey']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    profiles: [infrastructure, app]
+    ports:
+      # Host port 6380 so this does not clash with a Redis already on 6379.
+      - '6380:6379'
+    # Holds only rate-limit counters, which expire on their own, so no volume.
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: ./api
+    profiles: [app]
+    # Optional extras such as the NestJS Observe key pair. The `environment`
+    # block below wins over anything in this file.
+    env_file:
+      - path: ./api/.env
+        required: false
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://opensurvey:opensurvey@postgres:5432/opensurvey
+      REDIS_URL: redis://redis:6379
+      # The web container's nginx is the single proxy in front of the API, so
+      # trust exactly one hop: the rate limiter then keys on the client address
+      # nginx appends to X-Forwarded-For and ignores any value a client sends.
+      TRUST_PROXY: '1'
+    # Not published to the host on purpose: a direct caller would count as the
+    # trusted hop above and could spoof X-Forwarded-For. Reach it via the web
+    # server at http://localhost:8080/api/.
+    expose:
+      - '3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./web
+    profiles: [app]
+    ports:
+      - '8080:80'
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
