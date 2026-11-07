@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 import { INestApplication } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
 import { Test } from '@nestjs/testing';
@@ -13,6 +15,8 @@ describe('Admin controllers (e2e)', () => {
   let app: INestApplication;
   let db: Database;
   let ownerId: string;
+  let surveyId: string;
+  let questionIds: string[];
 
   beforeAll(async () => {
     const moduleFixture = await Test.createTestingModule({
@@ -201,6 +205,8 @@ describe('Admin controllers (e2e)', () => {
         }),
         expect.objectContaining({ prompt: 'Score?', position: 2 }),
       ]);
+      surveyId = res.body.id;
+      questionIds = res.body.questions.map((q: { id: string }) => q.id);
 
       await request(app.getHttpServer())
         .get('/public/surveys/admin-feedback')
@@ -251,6 +257,69 @@ describe('Admin controllers (e2e)', () => {
           questions,
         })
         .expect(422);
+    });
+  });
+
+  describe('GET /admin/surveys/:id/submissions', () => {
+    const submit = (answers: unknown[]) =>
+      request(app.getHttpServer())
+        .post('/public/surveys/admin-feedback/submissions')
+        .set('Idempotency-Key', randomUUID())
+        .set('User-Agent', 'admin-e2e/1.0')
+        .send({ answers });
+
+    it('lists the submissions newest first with metadata and answers', async () => {
+      const [nameId, toppingsId, scoreId] = questionIds;
+      const first = await submit([
+        { questionId: nameId, value: 'Ada' },
+        { questionId: scoreId, value: 4 },
+      ]).expect(201);
+      const second = await submit([
+        { questionId: nameId, value: 'Grace' },
+        { questionId: toppingsId, value: ['Cheese', 'Olives'] },
+      ]).expect(201);
+
+      const res = await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}/submissions`)
+        .expect(200);
+      expect(res.body.total).toBe(2);
+      expect(res.body.items.map((s: { id: string }) => s.id)).toEqual([
+        second.body.id,
+        first.body.id,
+      ]);
+      expect(res.body.items[0]).toMatchObject({
+        surveyId,
+        respondentId: null,
+        userAgent: 'admin-e2e/1.0',
+        referer: null,
+      });
+      expect(res.body.items[0].ipAddress).toMatch(/127\.0\.0\.1|::1/);
+      expect(res.body.items[0].answers).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ questionId: nameId, value: 'Grace' }),
+          expect.objectContaining({
+            questionId: toppingsId,
+            value: ['Cheese', 'Olives'],
+          }),
+        ]),
+      );
+    });
+
+    it('pages with limit and offset while total counts everything', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}/submissions?limit=1&offset=1`)
+        .expect(200);
+      expect(res.body.items).toHaveLength(1);
+      expect(res.body.total).toBe(2);
+    });
+
+    it('answers 404 for an unknown survey and 400 for bad paging', async () => {
+      await request(app.getHttpServer())
+        .get(`/admin/surveys/${missingOwner}/submissions`)
+        .expect(404);
+      await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}/submissions?limit=0`)
+        .expect(400);
     });
   });
 });

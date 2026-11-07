@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
@@ -96,5 +97,35 @@ describe('AdminSurveysService', () => {
     await expect(service.create(dto)).rejects.toBeInstanceOf(
       UnprocessableEntityException,
     );
+  });
+
+  describe('listSubmissions', () => {
+    const surveyId = '22222222-2222-4222-8222-222222222222';
+
+    it('returns the page the database finds and the total count', async () => {
+      const items = [{ id: 'sub1', answers: [] }];
+      db.query.surveys.findFirst.mockResolvedValue({ id: surveyId } as never);
+      db.query.surveyAnswerSubmissions.findMany.mockResolvedValue(
+        items as never,
+      );
+      db.select.mockReturnValue({
+        from: () => ({ where: () => Promise.resolve([{ total: 7 }]) }),
+      } as never);
+
+      await expect(
+        service.listSubmissions(surveyId, { limit: 10, offset: 20 }),
+      ).resolves.toEqual({ items, total: 7 });
+      expect(db.query.surveyAnswerSubmissions.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 10, offset: 20 }),
+      );
+    });
+
+    it('throws NotFoundException when no survey has the id', async () => {
+      db.query.surveys.findFirst.mockResolvedValue(undefined);
+      await expect(
+        service.listSubmissions(surveyId, { limit: 50, offset: 0 }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(db.query.surveyAnswerSubmissions.findMany).not.toHaveBeenCalled();
+    });
   });
 });

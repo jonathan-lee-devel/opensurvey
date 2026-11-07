@@ -81,3 +81,39 @@ export const adminSurveySchema = z.object({
 });
 
 export type AdminSurvey = z.infer<typeof adminSurveySchema>;
+
+export const surveyIdSchema = z.uuid().describe('The survey id');
+
+/** Paging for the submissions list: newest first. */
+export const listSubmissionsQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export type ListSubmissionsQuery = z.infer<typeof listSubmissionsQuerySchema>;
+
+/** A submission as administrators see it: request metadata and answers. */
+export const adminSubmissionSchema = z.object({
+  id: z.uuid(),
+  surveyId: z.uuid(),
+  respondentId: z.uuid().nullable(),
+  ipAddress: z.string().nullable(),
+  userAgent: z.string().nullable(),
+  referer: z.string().nullable(),
+  submittedAt: z.iso.datetime(),
+  answers: z.array(
+    z.object({
+      id: z.uuid(),
+      questionId: z.uuid(),
+      value: z.union([z.string(), z.number(), z.array(z.string())]),
+    }),
+  ),
+});
+
+export const adminSubmissionListSchema = z.object({
+  items: z.array(adminSubmissionSchema),
+  /** Submissions for the survey in total, whatever the paging. */
+  total: z.int().nonnegative(),
+});
+
+export type AdminSubmissionList = z.infer<typeof adminSubmissionListSchema>;

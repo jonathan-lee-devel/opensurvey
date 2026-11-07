@@ -1,8 +1,10 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { count, desc, eq } from 'drizzle-orm';
 
 import type { Database } from '../../../../database/database.types.js';
 import { InjectDrizzle } from '../../../../database/database.types.js';
@@ -10,8 +12,15 @@ import {
   isForeignKeyViolation,
   isUniqueViolation,
 } from '../../../../database/pg-errors.js';
-import { surveyQuestions, surveys } from '../../../../database/schema/index.js';
-import type { CreateSurveyDto } from '../../controllers/admin-surveys/admin-surveys.schema.js';
+import {
+  surveyAnswerSubmissions,
+  surveyQuestions,
+  surveys,
+} from '../../../../database/schema/index.js';
+import type {
+  CreateSurveyDto,
+  ListSubmissionsQuery,
+} from '../../controllers/admin-surveys/admin-surveys.schema.js';
 
 @Injectable()
 export class AdminSurveysService {
@@ -71,5 +80,40 @@ export class AdminSurveysService {
       }
       throw error;
     }
+  }
+
+  /**
+   * A page of the survey's submissions, newest first, each with its request
+   * metadata and answers, plus the total for the paging controls.
+   *
+   * @throws NotFoundException when no survey has the id, whatever its status.
+   */
+  async listSubmissions(
+    surveyId: string,
+    { limit, offset }: ListSubmissionsQuery,
+  ) {
+    const survey = await this.db.query.surveys.findFirst({
+      columns: { id: true },
+      where: eq(surveys.id, surveyId),
+    });
+    if (!survey) throw new NotFoundException(`No survey "${surveyId}"`);
+
+    const bySurvey = eq(surveyAnswerSubmissions.surveyId, surveyId);
+    const [items, [{ total }]] = await Promise.all([
+      this.db.query.surveyAnswerSubmissions.findMany({
+        where: bySurvey,
+        orderBy: desc(surveyAnswerSubmissions.submittedAt),
+        limit,
+        offset,
+        with: {
+          answers: { columns: { id: true, questionId: true, value: true } },
+        },
+      }),
+      this.db
+        .select({ total: count() })
+        .from(surveyAnswerSubmissions)
+        .where(bySurvey),
+    ]);
+    return { items, total };
   }
 }
