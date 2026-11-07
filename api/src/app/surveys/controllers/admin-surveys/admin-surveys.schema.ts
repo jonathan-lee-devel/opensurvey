@@ -58,6 +58,18 @@ export const createSurveySchema = z.strictObject({
 
 export type CreateSurveyDto = z.infer<typeof createSurveySchema>;
 
+/** A question as stored: the same shape in a survey and under an answer. */
+export const adminQuestionSchema = z.object({
+  id: z.uuid(),
+  type: z.enum(questionType.enumValues),
+  prompt: z.string(),
+  required: z.boolean(),
+  position: z.int().nonnegative(),
+  options: z.array(z.string()).nullable(),
+});
+
+export type AdminQuestion = z.infer<typeof adminQuestionSchema>;
+
 /** A survey as administrators see it, owner included. */
 export const adminSurveySchema = z.object({
   id: z.uuid(),
@@ -68,16 +80,7 @@ export const adminSurveySchema = z.object({
   status: z.enum(publishStatus.enumValues),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
-  questions: z.array(
-    z.object({
-      id: z.uuid(),
-      type: z.enum(questionType.enumValues),
-      prompt: z.string(),
-      required: z.boolean(),
-      position: z.int().nonnegative(),
-      options: z.array(z.string()).nullable(),
-    }),
-  ),
+  questions: z.array(adminQuestionSchema),
 });
 
 export type AdminSurvey = z.infer<typeof adminSurveySchema>;
@@ -92,7 +95,11 @@ export const listSubmissionsQuerySchema = z.object({
 
 export type ListSubmissionsQuery = z.infer<typeof listSubmissionsQuerySchema>;
 
-/** A submission as administrators see it: request metadata and answers. */
+/**
+ * A submission as administrators see it: request metadata and answers, each
+ * answer carrying the question it answers so the list reads without a second
+ * lookup.
+ */
 export const adminSubmissionSchema = z.object({
   id: z.uuid(),
   surveyId: z.uuid(),
@@ -104,7 +111,7 @@ export const adminSubmissionSchema = z.object({
   answers: z.array(
     z.object({
       id: z.uuid(),
-      questionId: z.uuid(),
+      question: adminQuestionSchema,
       value: z.union([z.string(), z.number(), z.array(z.string())]),
     }),
   ),

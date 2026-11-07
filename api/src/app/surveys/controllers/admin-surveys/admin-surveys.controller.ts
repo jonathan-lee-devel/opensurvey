@@ -50,7 +50,10 @@ export class AdminSurveysController {
    * List a survey's submissions
    *
    * @remarks Newest first, each with the request metadata it was recorded
-   * with (IP address, user agent, referer) and its answers. Page with `limit`
+   * with (IP address, user agent, referer) and its answers. Each answer
+   * carries the full question it answers (`question`, with its id, type,
+   * prompt, required flag, position and options) rather than a bare id, in
+   * the survey's question order. Page with `limit`
    * (1 to 200, default 50) and `offset`; `total` counts every submission to
    * the survey. Drafts and closed surveys are listed too.
    */

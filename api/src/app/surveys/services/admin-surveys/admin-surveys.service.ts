@@ -84,7 +84,8 @@ export class AdminSurveysService {
 
   /**
    * A page of the survey's submissions, newest first, each with its request
-   * metadata and answers, plus the total for the paging controls.
+   * metadata and answers, plus the total for the paging controls. Every
+   * answer carries its question, in the survey's question order.
    *
    * @throws NotFoundException when no survey has the id, whatever its status.
    */
@@ -106,7 +107,21 @@ export class AdminSurveysService {
         limit,
         offset,
         with: {
-          answers: { columns: { id: true, questionId: true, value: true } },
+          answers: {
+            columns: { id: true, value: true },
+            with: {
+              question: {
+                columns: {
+                  id: true,
+                  type: true,
+                  prompt: true,
+                  required: true,
+                  position: true,
+                  options: true,
+                },
+              },
+            },
+          },
         },
       }),
       this.db
@@ -114,6 +129,10 @@ export class AdminSurveysService {
         .from(surveyAnswerSubmissions)
         .where(bySurvey),
     ]);
+    // Answers in the survey's question order, as a reader expects them.
+    for (const item of items) {
+      item.answers.sort((a, b) => a.question.position - b.question.position);
+    }
     return { items, total };
   }
 }

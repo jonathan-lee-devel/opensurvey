@@ -312,15 +312,30 @@ describe('Admin controllers (e2e)', () => {
         referer: null,
       });
       expect(res.body.items[0].ipAddress).toMatch(/127\.0\.0\.1|::1/);
-      expect(res.body.items[0].answers).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ questionId: nameId, value: 'Grace' }),
-          expect.objectContaining({
-            questionId: toppingsId,
-            value: ['Cheese', 'Olives'],
+      // Answers carry their full question, in the survey's question order.
+      expect(res.body.items[0].answers).toEqual([
+        expect.objectContaining({
+          value: 'Grace',
+          question: {
+            id: nameId,
+            type: 'short_text',
+            prompt: 'Name?',
+            required: true,
+            position: 0,
+            options: null,
+          },
+        }),
+        expect.objectContaining({
+          value: ['Cheese', 'Olives'],
+          question: expect.objectContaining({
+            id: toppingsId,
+            type: 'multiple_choice',
+            position: 1,
+            options: expect.arrayContaining(['Cheese', 'Olives']),
           }),
-        ]),
-      );
+        }),
+      ]);
+      expect(res.body.items[0].answers[0]).not.toHaveProperty('questionId');
     });
 
     it('pages with limit and offset while total counts everything', async () => {
