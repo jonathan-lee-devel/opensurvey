@@ -335,6 +335,60 @@ describe('Admin controllers (e2e)', () => {
     });
   });
 
+  describe('GET /admin/surveys', () => {
+    // By now two surveys exist: admin-feedback (published) then admin-draft.
+    it('lists every survey newest first, without questions', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/admin/surveys')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(res.body.total).toBe(2);
+      expect(res.body.items.map((s: { slug: string }) => s.slug)).toEqual([
+        'admin-draft',
+        'admin-feedback',
+      ]);
+      expect(res.body.items[1]).toMatchObject({
+        id: surveyId,
+        ownerId,
+        title: 'Feedback',
+        status: 'published',
+      });
+      expect(res.body.items[1]).not.toHaveProperty('questions');
+    });
+
+    it('filters by status and pages while total counts the filter', async () => {
+      const drafts = await request(app.getHttpServer())
+        .get('/admin/surveys?status=draft')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(drafts.body.total).toBe(1);
+      expect(drafts.body.items.map((s: { slug: string }) => s.slug)).toEqual([
+        'admin-draft',
+      ]);
+
+      const page = await request(app.getHttpServer())
+        .get('/admin/surveys?limit=1&offset=1')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(page.body.total).toBe(2);
+      expect(page.body.items.map((s: { slug: string }) => s.slug)).toEqual([
+        'admin-feedback',
+      ]);
+    });
+
+    it('answers 400 for a bad status or paging and 401 without a token', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/surveys?status=archived')
+        .set('Authorization', auth)
+        .expect(400);
+      await request(app.getHttpServer())
+        .get('/admin/surveys?limit=0')
+        .set('Authorization', auth)
+        .expect(400);
+      await request(app.getHttpServer()).get('/admin/surveys').expect(401);
+    });
+  });
+
   describe('GET /admin/surveys/:id/submissions', () => {
     const submit = (answers: unknown[]) =>
       request(app.getHttpServer())

@@ -99,6 +99,35 @@ describe('AdminSurveysService', () => {
     );
   });
 
+  describe('list', () => {
+    const items = [{ id: 's1' }, { id: 's2' }];
+    let where: Stub<unknown[]>;
+
+    beforeEach(() => {
+      where = stub().mockResolvedValue([{ total: 9 }]);
+      db.query.surveys.findMany.mockResolvedValue(items as never);
+      db.select.mockReturnValue({ from: () => ({ where }) } as never);
+    });
+
+    it('returns the page the database finds and the total count', async () => {
+      await expect(service.list({ limit: 10, offset: 20 })).resolves.toEqual({
+        items,
+        total: 9,
+      });
+      expect(db.query.surveys.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 10, offset: 20, where: undefined }),
+      );
+      expect(where).toHaveBeenCalledWith(undefined);
+    });
+
+    it('filters both the page and the count by status when given', async () => {
+      await service.list({ limit: 50, offset: 0, status: 'draft' });
+      const { where: pageWhere } = db.query.surveys.findMany.mock.calls[0][0]!;
+      expect(pageWhere).toBeDefined();
+      expect(where).toHaveBeenCalledWith(pageWhere);
+    });
+  });
+
   describe('findById', () => {
     const surveyId = '22222222-2222-4222-8222-222222222222';
 

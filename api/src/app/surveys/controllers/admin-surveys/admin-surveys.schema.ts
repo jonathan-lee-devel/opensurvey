@@ -87,11 +87,39 @@ export type AdminSurvey = z.infer<typeof adminSurveySchema>;
 
 export const surveyIdSchema = z.uuid().describe('The survey id');
 
-/** Paging for the submissions list: newest first. */
-export const listSubmissionsQuerySchema = z.object({
+/** Paging shared by the admin lists: newest first. */
+const pageQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
 });
+
+/** Paging and an optional status filter for the survey list. */
+export const listSurveysQuerySchema = pageQuerySchema.extend({
+  status: z
+    .enum(publishStatus.enumValues)
+    .optional()
+    .describe('Only surveys with this status'),
+});
+
+export type ListSurveysQuery = z.infer<typeof listSurveysQuerySchema>;
+
+/** A survey in the list: everything but its questions. */
+export const adminSurveySummarySchema = adminSurveySchema.omit({
+  questions: true,
+});
+
+export type AdminSurveySummary = z.infer<typeof adminSurveySummarySchema>;
+
+export const adminSurveyListSchema = z.object({
+  items: z.array(adminSurveySummarySchema),
+  /** Surveys matching the filter in total, whatever the paging. */
+  total: z.int().nonnegative(),
+});
+
+export type AdminSurveyList = z.infer<typeof adminSurveyListSchema>;
+
+/** Paging for the submissions list: newest first. */
+export const listSubmissionsQuerySchema = pageQuerySchema;
 
 export type ListSubmissionsQuery = z.infer<typeof listSubmissionsQuerySchema>;
 

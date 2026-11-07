@@ -14,12 +14,15 @@ import { AdminSurveysService } from '../../services/admin-surveys/admin-surveys.
 import type {
   CreateSurveyDto,
   ListSubmissionsQuery,
+  ListSurveysQuery,
 } from './admin-surveys.schema.js';
 import {
   adminSubmissionListSchema,
+  adminSurveyListSchema,
   adminSurveySchema,
   createSurveySchema,
   listSubmissionsQuerySchema,
+  listSurveysQuerySchema,
   surveyIdSchema,
 } from './admin-surveys.schema.js';
 
@@ -44,6 +47,20 @@ export class AdminSurveysController {
   @ApiUnprocessableEntityResponse({ description: 'The owner does not exist.' })
   create(@Body({ schema: createSurveySchema }) dto: CreateSurveyDto) {
     return this.adminSurveys.create(dto);
+  }
+
+  /**
+   * List surveys
+   *
+   * @remarks Newest first, without their questions. Page with `limit` (1 to
+   * 200, default 50) and `offset`; filter with `status` to see only drafts,
+   * published or closed surveys. `total` counts every survey matching the
+   * filter.
+   */
+  @Get()
+  @ApiOkResponse({ standardSchema: adminSurveyListSchema })
+  list(@Query({ schema: listSurveysQuerySchema }) query: ListSurveysQuery) {
+    return this.adminSurveys.list(query);
   }
 
   /**

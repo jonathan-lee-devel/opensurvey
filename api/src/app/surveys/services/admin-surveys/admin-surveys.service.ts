@@ -20,6 +20,7 @@ import {
 import type {
   CreateSurveyDto,
   ListSubmissionsQuery,
+  ListSurveysQuery,
 } from '../../controllers/admin-surveys/admin-surveys.schema.js';
 
 @Injectable()
@@ -80,6 +81,24 @@ export class AdminSurveysService {
       }
       throw error;
     }
+  }
+
+  /**
+   * A page of surveys, newest first, without their questions, plus the total
+   * for the paging controls. Every status is listed unless one is asked for.
+   */
+  async list({ limit, offset, status }: ListSurveysQuery) {
+    const where = status ? eq(surveys.status, status) : undefined;
+    const [items, [{ total }]] = await Promise.all([
+      this.db.query.surveys.findMany({
+        where,
+        orderBy: desc(surveys.createdAt),
+        limit,
+        offset,
+      }),
+      this.db.select({ total: count() }).from(surveys).where(where),
+    ]);
+    return { items, total };
   }
 
   /**
