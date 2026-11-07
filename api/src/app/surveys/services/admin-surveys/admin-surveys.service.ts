@@ -1,5 +1,7 @@
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import {
   ConflictException,
+  Inject,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -21,11 +23,18 @@ import type {
   CreateSurveyDto,
   ListSubmissionsQuery,
   ListSurveysQuery,
+  UpdateSurveyDto,
 } from '../../controllers/admin-surveys/admin-surveys.schema.js';
+
+/** The cached public response for a slug, as `CacheInterceptor` keys it. */
+const publicSurveyUrl = (slug: string) => `/public/surveys/${slug}`;
 
 @Injectable()
 export class AdminSurveysService {
-  constructor(@InjectDrizzle() private readonly db: Database) {}
+  constructor(
+    @InjectDrizzle() private readonly db: Database,
+    @Inject(CACHE_MANAGER) private readonly cache: Cache,
+  ) {}
 
   /**
    * Creates a survey and its questions in one transaction. Questions take
@@ -126,6 +135,59 @@ export class AdminSurveysService {
     });
     if (!survey) throw new NotFoundException(`No survey "${id}"`);
     return survey;
+  }
+
+  /**
+   * Changes the survey's own fields and returns it as `findById()` does. The
+   * public response cached under the old slug (and the new one, if renamed)
+   * is dropped, so a closed or renamed survey disappears from its link at
+   * once and a published one appears.
+   *
+   * @throws NotFoundException when no survey has the id.
+   * @throws ConflictException when another survey has the new slug.
+   */
+  async update(id: string, dto: UpdateSurveyDto) {
+    const existing = await this.db.query.surveys.findFirst({
+      columns: { id: true, slug: true },
+      where: eq(surveys.id, id),
+    });
+    if (!existing) throw new NotFoundException(`No survey "${id}"`);
+
+    let updated: { slug: string };
+    try {
+      [updated] = await this.db
+        .update(surveys)
+        .set(dto)
+        .where(eq(surveys.id, id))
+        .returning({ slug: surveys.slug });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(`A survey with slug "${dto.slug}" exists`);
+      }
+      throw error;
+    }
+    await this.invalidatePublic(existing.slug, updated.slug);
+    return this.findById(id);
+  }
+
+  /**
+   * Deletes the survey; its questions, submissions and answers cascade, and
+   * the public response cached under its slug is dropped.
+   *
+   * @throws NotFoundException when no survey has the id.
+   */
+  async remove(id: string): Promise<void> {
+    const [deleted] = await this.db
+      .delete(surveys)
+      .where(eq(surveys.id, id))
+      .returning({ slug: surveys.slug });
+    if (!deleted) throw new NotFoundException(`No survey "${id}"`);
+    await this.invalidatePublic(deleted.slug);
+  }
+
+  private async invalidatePublic(...slugs: string[]): Promise<void> {
+    const urls = [...new Set(slugs)].map(publicSurveyUrl);
+    await Promise.all(urls.map((url) => this.cache.del(url)));
   }
 
   /**

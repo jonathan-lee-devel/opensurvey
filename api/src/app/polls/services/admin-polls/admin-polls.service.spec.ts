@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
@@ -81,5 +82,59 @@ describe('AdminPollsService', () => {
     await expect(service.create(dto)).rejects.toBeInstanceOf(
       UnprocessableEntityException,
     );
+  });
+
+  describe('list', () => {
+    const items = [{ id: 'p1' }, { id: 'p2' }];
+    let where: Stub<unknown[]>;
+
+    beforeEach(() => {
+      where = stub().mockResolvedValue([{ total: 4 }]);
+      db.query.polls.findMany.mockResolvedValue(items as never);
+      db.select.mockReturnValue({ from: () => ({ where }) } as never);
+    });
+
+    it('returns the page the database finds and the total count', async () => {
+      await expect(service.list({ limit: 10, offset: 20 })).resolves.toEqual({
+        items,
+        total: 4,
+      });
+      expect(db.query.polls.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ limit: 10, offset: 20, where: undefined }),
+      );
+      expect(where).toHaveBeenCalledWith(undefined);
+    });
+
+    it('filters both the page and the count by status when given', async () => {
+      await service.list({ limit: 50, offset: 0, status: 'closed' });
+      const { where: pageWhere } = db.query.polls.findMany.mock.calls[0][0]!;
+      expect(pageWhere).toBeDefined();
+      expect(where).toHaveBeenCalledWith(pageWhere);
+    });
+  });
+
+  describe('findById', () => {
+    const pollId = '22222222-2222-4222-8222-222222222222';
+
+    it('returns the poll the database finds, options included', async () => {
+      const poll = { id: pollId, question: 'Lunch?', options: [] };
+      db.query.polls.findFirst.mockResolvedValue(poll as never);
+
+      await expect(service.findById(pollId)).resolves.toBe(poll);
+      expect(db.query.polls.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          with: {
+            options: expect.objectContaining({ orderBy: expect.anything() }),
+          },
+        }),
+      );
+    });
+
+    it('throws NotFoundException when no poll has the id', async () => {
+      db.query.polls.findFirst.mockResolvedValue(undefined);
+      await expect(service.findById(pollId)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
   });
 });

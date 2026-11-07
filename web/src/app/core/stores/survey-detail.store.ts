@@ -3,12 +3,13 @@ import { patchState, signalStore, withComputed, withMethods, withState } from '@
 import { setAllEntities, withEntities } from '@ngrx/signals/entities';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { tapResponse } from '@ngrx/operators';
-import { forkJoin, pipe, switchMap, tap } from 'rxjs';
+import { firstValueFrom, forkJoin, pipe, switchMap, tap } from 'rxjs';
 
 import { describeError } from '../api/api-error';
 import { AdminSurveysService } from '../api/admin-surveys.service';
-import { AdminSubmission, AdminSurvey, ListSubmissionsQuery } from '../api/models';
+import { AdminSubmission, AdminSurvey, ListSubmissionsQuery, UpdateSurveyDto } from '../api/models';
 import { setError, setFulfilled, setPending, withRequestStatus } from './with-request-status';
+import { ToastsStore } from './toasts.store';
 
 interface SurveyDetailState {
   readonly surveyId: string | null;
@@ -47,6 +48,7 @@ export const SurveyDetailStore = signalStore(
   })),
   withMethods((store) => {
     const surveys = inject(AdminSurveysService);
+    const toasts = inject(ToastsStore);
 
     const load = rxMethod<SurveyDetailQuery | null>(
       pipe(
@@ -102,6 +104,29 @@ export const SurveyDetailStore = signalStore(
 
       reload(): void {
         load(store.query());
+      },
+
+      /**
+       * Changes the survey's own fields or status and keeps the loaded copy in
+       * step. Rejects with the `ApiError` so a form can place field errors.
+       */
+      async update(dto: UpdateSurveyDto): Promise<AdminSurvey> {
+        const id = store.surveyId();
+        if (!id) throw new Error('No survey selected');
+        const survey = await firstValueFrom(surveys.update(id, dto));
+        patchState(store, { survey });
+        toasts.success(dto.status ? `Survey is now ${dto.status}.` : 'Survey updated.');
+        return survey;
+      },
+
+      /** Deletes the loaded survey; the page navigates away afterwards. */
+      async remove(): Promise<void> {
+        const id = store.surveyId();
+        const title = store.survey()?.title ?? 'Survey';
+        if (!id) throw new Error('No survey selected');
+        await firstValueFrom(surveys.remove(id));
+        patchState(store, { surveyId: null, survey: null });
+        toasts.success(`“${title}” deleted.`);
       },
     };
   }),

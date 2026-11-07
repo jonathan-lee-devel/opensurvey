@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 
 import { AppModule } from './../src/app.module.js';
+import { SURVEY_ADMIN_CLAIM } from './../src/auth/auth.constants.js';
 import { Database } from './../src/database/database.types.js';
 import { users } from './../src/database/schema/index.js';
 import { bearer } from './auth.js';
@@ -18,11 +19,13 @@ describe('Admin controllers (e2e)', () => {
   let ownerId: string;
   let surveyId: string;
   let questionIds: string[];
-  // The admin routes need a Bearer token (AuthGuard); the public ones do not.
+  // The admin routes need a Bearer token holding the admin claim (AuthGuard
+  // then ClaimsGuard); the public ones need neither.
   let auth: string;
+  let pollId: string;
 
   beforeAll(async () => {
-    auth = await bearer({ sub: 'admin-e2e' });
+    auth = await bearer({ sub: 'admin-e2e', roles: [SURVEY_ADMIN_CLAIM] });
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -35,6 +38,19 @@ describe('Admin controllers (e2e)', () => {
     // Cascades to the polls, surveys and their children.
     await db.delete(users);
     await app.close();
+  });
+
+  describe('the admin claim', () => {
+    it('answers 403 to a signed-in caller without it, on every admin controller', async () => {
+      const viewer = await bearer({ sub: 'viewer-e2e', roles: ['viewer'] });
+      for (const path of ['/admin/users', '/admin/polls', '/admin/surveys']) {
+        const res = await request(app.getHttpServer())
+          .get(path)
+          .set('Authorization', viewer)
+          .expect(403);
+        expect(res.body.message).toContain(SURVEY_ADMIN_CLAIM);
+      }
+    });
   });
 
   describe('POST /admin/users', () => {
@@ -75,6 +91,43 @@ describe('Admin controllers (e2e)', () => {
     });
   });
 
+  describe('GET /admin/users', () => {
+    it('lists users newest first and pages while total counts everyone', async () => {
+      await request(app.getHttpServer())
+        .post('/admin/users')
+        .set('Authorization', auth)
+        .send({ email: 'second-e2e@example.com' })
+        .expect(201);
+
+      const all = await request(app.getHttpServer())
+        .get('/admin/users')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(all.body.total).toBe(2);
+      expect(all.body.items.map((u: { email: string }) => u.email)).toEqual([
+        'second-e2e@example.com',
+        'admin-e2e@example.com',
+      ]);
+
+      const page = await request(app.getHttpServer())
+        .get('/admin/users?limit=1&offset=1')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(page.body.items).toEqual([
+        expect.objectContaining({ email: 'admin-e2e@example.com' }),
+      ]);
+      expect(page.body.total).toBe(2);
+    });
+
+    it('answers 400 for bad paging and 401 without a token', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/users?limit=0')
+        .set('Authorization', auth)
+        .expect(400);
+      await request(app.getHttpServer()).get('/admin/users').expect(401);
+    });
+  });
+
   describe('POST /admin/polls', () => {
     it('creates a poll with ordered options and makes it publicly readable', async () => {
       const res = await request(app.getHttpServer())
@@ -101,6 +154,7 @@ describe('Admin controllers (e2e)', () => {
         expect.objectContaining({ label: 'Tacos', position: 1 }),
         expect.objectContaining({ label: 'Salad', position: 2 }),
       ]);
+      pollId = res.body.id;
 
       const pub = await request(app.getHttpServer())
         .get('/public/polls/admin-lunch')
@@ -172,6 +226,62 @@ describe('Admin controllers (e2e)', () => {
           expect.stringMatching(/^options: /),
         ]),
       );
+    });
+  });
+
+  describe('GET /admin/polls and GET /admin/polls/:id', () => {
+    it('lists polls newest first without options, filtered by status', async () => {
+      const all = await request(app.getHttpServer())
+        .get('/admin/polls')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(all.body.total).toBe(2);
+      expect(all.body.items.map((p: { slug: string }) => p.slug)).toEqual([
+        'admin-dinner',
+        'admin-lunch',
+      ]);
+      expect(all.body.items[0]).not.toHaveProperty('options');
+
+      const drafts = await request(app.getHttpServer())
+        .get('/admin/polls?status=draft&limit=1')
+        .set('Authorization', auth)
+        .expect(200);
+      expect(drafts.body.items).toEqual([
+        expect.objectContaining({ slug: 'admin-dinner', status: 'draft' }),
+      ]);
+      expect(drafts.body.total).toBe(1);
+    });
+
+    it('returns one poll with its owner and ordered options', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .expect(200);
+      expect(res.body).toMatchObject({
+        id: pollId,
+        ownerId,
+        slug: 'admin-lunch',
+      });
+      expect(res.body.options.map((o: { label: string }) => o.label)).toEqual([
+        'Pizza',
+        'Tacos',
+        'Salad',
+      ]);
+    });
+
+    it('answers 404 for an unknown id, 400 for a malformed one and a bad status', async () => {
+      await request(app.getHttpServer())
+        .get(`/admin/polls/${missingOwner}`)
+        .set('Authorization', auth)
+        .expect(404);
+      await request(app.getHttpServer())
+        .get('/admin/polls/not-a-uuid')
+        .set('Authorization', auth)
+        .expect(400);
+      await request(app.getHttpServer())
+        .get('/admin/polls?status=archived')
+        .set('Authorization', auth)
+        .expect(400);
     });
   });
 
@@ -466,6 +576,139 @@ describe('Admin controllers (e2e)', () => {
         .expect(404);
       await request(app.getHttpServer())
         .get(`/admin/surveys/${surveyId}/submissions?limit=0`)
+        .set('Authorization', auth)
+        .expect(400);
+    });
+  });
+
+  describe('PATCH /admin/surveys/:id', () => {
+    it('changes the fields given, keeps the rest, and bumps updatedAt', async () => {
+      const before = await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .expect(200);
+
+      const res = await request(app.getHttpServer())
+        .patch(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .send({ title: 'Feedback, revised', description: null })
+        .expect(200);
+      expect(res.body).toMatchObject({
+        id: surveyId,
+        title: 'Feedback, revised',
+        description: null,
+        slug: 'admin-feedback',
+        status: 'published',
+      });
+      expect(res.body.questions).toHaveLength(3);
+      expect(new Date(res.body.updatedAt).getTime()).toBeGreaterThan(
+        new Date(before.body.updatedAt).getTime(),
+      );
+    });
+
+    it('closing drops the cached public response, so the link stops answering', async () => {
+      // Warm the cache, then prove the next read comes from Redis.
+      await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback')
+        .expect(200);
+      const hit = await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback')
+        .expect(200);
+      expect(hit.headers['x-cache']).toBe('HIT');
+
+      await request(app.getHttpServer())
+        .patch(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .send({ status: 'closed' })
+        .expect(200);
+      await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback')
+        .expect(404);
+    });
+
+    it('renaming the slug moves the survey to its new link', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .send({ slug: 'admin-feedback-2', status: 'published' })
+        .expect(200);
+      await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback')
+        .expect(404);
+      await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback-2')
+        .expect(200);
+    });
+
+    it('answers 409 for a slug another survey has', async () => {
+      await request(app.getHttpServer())
+        .post('/admin/surveys')
+        .set('Authorization', auth)
+        .send({
+          ownerId,
+          title: 'Other',
+          slug: 'admin-other',
+          questions: [{ type: 'short_text', prompt: 'Why?' }],
+        })
+        .expect(201);
+      await request(app.getHttpServer())
+        .patch(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .send({ slug: 'admin-other' })
+        .expect(409);
+    });
+
+    it('answers 400 for an empty body, unknown keys or questions, and 404 for an unknown id', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .send({})
+        .expect(400);
+      await request(app.getHttpServer())
+        .patch(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .send({ questions: [] })
+        .expect(400);
+      await request(app.getHttpServer())
+        .patch(`/admin/surveys/${missingOwner}`)
+        .set('Authorization', auth)
+        .send({ title: 'x' })
+        .expect(404);
+    });
+  });
+
+  describe('DELETE /admin/surveys/:id', () => {
+    it('removes the survey, its submissions and its public link', async () => {
+      // Warm the cache so the delete has something to drop.
+      await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback-2')
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .delete(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .expect(204);
+
+      await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .expect(404);
+      await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}/submissions`)
+        .set('Authorization', auth)
+        .expect(404);
+      await request(app.getHttpServer())
+        .get('/public/surveys/admin-feedback-2')
+        .expect(404);
+    });
+
+    it('answers 404 the second time and for a malformed id 400', async () => {
+      await request(app.getHttpServer())
+        .delete(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .expect(404);
+      await request(app.getHttpServer())
+        .delete('/admin/surveys/not-a-uuid')
         .set('Authorization', auth)
         .expect(400);
     });

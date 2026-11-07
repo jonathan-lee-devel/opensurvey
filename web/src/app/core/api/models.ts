@@ -43,6 +43,13 @@ export interface ListSurveysQuery extends PageQuery {
 
 export type ListSubmissionsQuery = PageQuery;
 
+export type ListUsersQuery = PageQuery;
+
+export interface ListPollsQuery extends PageQuery {
+  /** Only polls with this status. */
+  readonly status?: PublishStatus;
+}
+
 /** A page of items with the total matching the filter, whatever the paging. */
 export interface PagedList<T> {
   readonly items: readonly T[];
@@ -71,6 +78,18 @@ export interface CreateSurveyDto {
   readonly status: PublishStatus;
   /** 1 to 50 questions in display order. */
   readonly questions: readonly CreateQuestionDto[];
+}
+
+/**
+ * What an administrator may change after creation: any subset of the
+ * survey's own fields, at least one. Questions are fixed once answers can
+ * refer to them.
+ */
+export interface UpdateSurveyDto {
+  readonly title?: string;
+  readonly description?: string | null;
+  readonly slug?: string;
+  readonly status?: PublishStatus;
 }
 
 /** A question as stored: the same shape in a survey and under an answer. */
@@ -145,8 +164,8 @@ export interface AdminPollOption {
   readonly position: number;
 }
 
-/** A poll as administrators see it, owner included. */
-export interface AdminPoll {
+/** A poll in the list: everything but its options. */
+export interface AdminPollSummary {
   readonly id: string;
   readonly ownerId: string;
   readonly question: string;
@@ -155,8 +174,14 @@ export interface AdminPoll {
   readonly closesAt: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
+}
+
+/** A poll as administrators see it, owner included. */
+export interface AdminPoll extends AdminPollSummary {
   readonly options: readonly AdminPollOption[];
 }
+
+export type AdminPollList = PagedList<AdminPollSummary>;
 
 // --- Users ---------------------------------------------------------------
 
@@ -175,3 +200,5 @@ export interface AdminUser {
   readonly createdAt: string;
   readonly updatedAt: string;
 }
+
+export type AdminUserList = PagedList<AdminUser>;

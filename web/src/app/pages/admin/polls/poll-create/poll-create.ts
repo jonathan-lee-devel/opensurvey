@@ -1,4 +1,3 @@
-import { DatePipe } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import {
   FormField,
@@ -10,12 +9,11 @@ import {
   submit,
   validate,
 } from '@angular/forms/signals';
+import { Router, RouterLink } from '@angular/router';
 
-import { EmptyState } from '../../../../common/empty-state/empty-state';
 import { FormFieldGroup } from '../../../../common/form-field/form-field';
 import { PageHeader } from '../../../../common/page-header/page-header';
 import { StatusLabelPipe } from '../../../../common/pipes/status-label.pipe';
-import { StatusBadge } from '../../../../common/status-badge/status-badge';
 import { CreatePollDto, PUBLISH_STATUSES, PublishStatus } from '../../../../core/api/models';
 import {
   SLUG_PATTERN,
@@ -42,20 +40,13 @@ function emptyPoll(): PollFormModel {
 
 @Component({
   selector: 'app-poll-create',
-  imports: [
-    DatePipe,
-    FormField,
-    FormFieldGroup,
-    PageHeader,
-    StatusLabelPipe,
-    StatusBadge,
-    EmptyState,
-  ],
+  imports: [RouterLink, FormField, FormFieldGroup, PageHeader, StatusLabelPipe],
   templateUrl: './poll-create.html',
   styleUrl: './poll-create.scss',
 })
 export class PollCreate {
-  protected readonly polls = inject(PollsStore);
+  private readonly polls = inject(PollsStore);
+  private readonly router = inject(Router);
   protected readonly users = inject(UsersStore);
   protected readonly statuses = PUBLISH_STATUSES;
 
@@ -64,8 +55,8 @@ export class PollCreate {
 
   /** Mirrors `createPollSchema` in the API. */
   protected readonly form = form(this.model, (path) => {
-    required(path.ownerId, { message: 'Enter the id of the user who owns this poll.' });
-    pattern(path.ownerId, UUID_PATTERN, { message: 'Must be a UUID, as shown on the Users page.' });
+    required(path.ownerId, { message: 'Choose the user who owns this poll.' });
+    pattern(path.ownerId, UUID_PATTERN, { message: 'Choose a user from the list.' });
     required(path.question, { message: 'Enter the question.' });
     maxLength(path.question, 500, { message: 'At most 500 characters.' });
     required(path.slug, { message: 'Enter the slug for the public link.' });
@@ -92,6 +83,10 @@ export class PollCreate {
     });
   });
 
+  constructor() {
+    this.users.loadOwnerOptions();
+  }
+
   protected onQuestionInput(event: Event): void {
     if (this.slugEdited()) return;
     this.form.slug().value.set(slugify((event.target as HTMLInputElement).value));
@@ -113,9 +108,8 @@ export class PollCreate {
     event.preventDefault();
     await submit(this.form, async () => {
       try {
-        await this.polls.create(toDto(this.model()));
-        this.form().reset(emptyPoll());
-        this.slugEdited.set(false);
+        const created = await this.polls.create(toDto(this.model()));
+        await this.router.navigate(['/admin/polls', created.id]);
         return null;
       } catch (error) {
         return toSubmitErrors(error, {

@@ -67,8 +67,8 @@ export class SurveyCreate {
 
   /** Mirrors `createSurveySchema` in the API so most mistakes are caught before a request. */
   protected readonly form = form(this.model, (path) => {
-    required(path.ownerId, { message: 'Enter the id of the user who owns this survey.' });
-    pattern(path.ownerId, UUID_PATTERN, { message: 'Must be a UUID, as shown on the Users page.' });
+    required(path.ownerId, { message: 'Choose the user who owns this survey.' });
+    pattern(path.ownerId, UUID_PATTERN, { message: 'Choose a user from the list.' });
     required(path.title, { message: 'Give the survey a title.' });
     maxLength(path.title, 200, { message: 'At most 200 characters.' });
     maxLength(path.description, 2000, { message: 'At most 2000 characters.' });
@@ -104,6 +104,10 @@ export class SurveyCreate {
       });
     });
   });
+
+  constructor() {
+    this.users.loadOwnerOptions();
+  }
 
   protected onTitleInput(event: Event): void {
     if (this.slugEdited()) return;

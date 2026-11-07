@@ -53,25 +53,23 @@
     <div class="form__grid">
       <app-form-field
         [field]="form.ownerId"
-        label="Owner id"
+        label="Owner"
         controlId="ownerId"
-        hint="The API has no user list yet: paste a user id from the Users page. Users created in this session are suggested."
+        hint="Users come from the Users page."
       >
-        <input
-          class="input mono"
+        <select
+          class="select"
           id="ownerId"
-          type="text"
           [formField]="form.ownerId"
-          list="owner-options"
-          autocomplete="off"
-          spellcheck="false"
           aria-describedby="ownerId-hint"
-        />
-        <datalist id="owner-options">
-          @for (user of users.entities(); track user.id) {
-            <option [value]="user.id">{{ user.email }}</option>
+        >
+          <option value="">Choose a user…</option>
+          @for (user of users.ownerOptions(); track user.id) {
+            <option [value]="user.id">
+              {{ user.displayName ? user.displayName + ' · ' + user.email : user.email }}
+            </option>
           }
-        </datalist>
+        </select>
       </app-form-field>
 
       <app-form-field

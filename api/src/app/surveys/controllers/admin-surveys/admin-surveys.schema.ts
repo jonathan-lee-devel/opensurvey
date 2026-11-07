@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { pageQuerySchema } from '../../../../common/paging.schema.js';
 import { slugSchema } from '../../../../common/slug.schema.js';
 import {
   publishStatus,
@@ -58,6 +59,24 @@ export const createSurveySchema = z.strictObject({
 
 export type CreateSurveyDto = z.infer<typeof createSurveySchema>;
 
+/**
+ * What an administrator may change after creation: the survey's own fields,
+ * any subset, at least one. Questions are fixed once answers can refer to
+ * them, so they are not editable here.
+ */
+export const updateSurveySchema = z
+  .strictObject({
+    title: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().min(1).max(2000).nullable().optional(),
+    slug: slugSchema.optional(),
+    status: z.enum(publishStatus.enumValues).optional(),
+  })
+  .refine((dto) => Object.keys(dto).length > 0, {
+    message: 'at least one of title, description, slug or status is required',
+  });
+
+export type UpdateSurveyDto = z.infer<typeof updateSurveySchema>;
+
 /** A question as stored: the same shape in a survey and under an answer. */
 export const adminQuestionSchema = z.object({
   id: z.uuid(),
@@ -86,12 +105,6 @@ export const adminSurveySchema = z.object({
 export type AdminSurvey = z.infer<typeof adminSurveySchema>;
 
 export const surveyIdSchema = z.uuid().describe('The survey id');
-
-/** Paging shared by the admin lists: newest first. */
-const pageQuerySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(200).default(50),
-  offset: z.coerce.number().int().min(0).default(0),
-});
 
 /** Paging and an optional status filter for the survey list. */
 export const listSurveysQuerySchema = pageQuerySchema.extend({

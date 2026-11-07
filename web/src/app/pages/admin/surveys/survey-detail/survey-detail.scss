@@ -163,3 +163,34 @@
     color: var(--color-1dp);
   }
 }
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .panel__title {
+    margin-bottom: 0;
+  }
+}
+
+.edit {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.edit__error {
+  color: #b42318;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.edit__actions {
+  display: flex;
+  gap: 8px;
+}

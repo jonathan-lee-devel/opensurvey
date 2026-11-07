@@ -1,8 +1,10 @@
 import {
   ConflictException,
   Injectable,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { asc, count, desc, eq } from 'drizzle-orm';
 
 import type { Database } from '../../../../database/database.types.js';
 import { InjectDrizzle } from '../../../../database/database.types.js';
@@ -11,7 +13,10 @@ import {
   isUniqueViolation,
 } from '../../../../database/pg-errors.js';
 import { pollOptions, polls } from '../../../../database/schema/index.js';
-import type { CreatePollDto } from '../../controllers/admin-polls/admin-polls.schema.js';
+import type {
+  CreatePollDto,
+  ListPollsQuery,
+} from '../../controllers/admin-polls/admin-polls.schema.js';
 
 @Injectable()
 export class AdminPollsService {
@@ -65,5 +70,43 @@ export class AdminPollsService {
       }
       throw error;
     }
+  }
+
+  /**
+   * A page of polls, newest first, without their options, plus the total for
+   * the paging controls. Every status is listed unless one is asked for.
+   */
+  async list({ limit, offset, status }: ListPollsQuery) {
+    const where = status ? eq(polls.status, status) : undefined;
+    const [items, [{ total }]] = await Promise.all([
+      this.db.query.polls.findMany({
+        where,
+        orderBy: desc(polls.createdAt),
+        limit,
+        offset,
+      }),
+      this.db.select({ total: count() }).from(polls).where(where),
+    ]);
+    return { items, total };
+  }
+
+  /**
+   * The poll with this id and its options in display order, whatever its
+   * status: administrators see drafts and closed polls too.
+   *
+   * @throws NotFoundException when no poll has the id.
+   */
+  async findById(id: string) {
+    const poll = await this.db.query.polls.findFirst({
+      where: eq(polls.id, id),
+      with: {
+        options: {
+          columns: { id: true, label: true, position: true },
+          orderBy: asc(pollOptions.position),
+        },
+      },
+    });
+    if (!poll) throw new NotFoundException(`No poll "${id}"`);
+    return poll;
   }
 }

@@ -4,7 +4,10 @@ import { FormField, email, form, maxLength, required, submit } from '@angular/fo
 
 import { CopyButton } from '../../../../common/copy-button/copy-button';
 import { EmptyState } from '../../../../common/empty-state/empty-state';
+import { ErrorBanner } from '../../../../common/error-banner/error-banner';
 import { FormFieldGroup } from '../../../../common/form-field/form-field';
+import { LoadingIndicator } from '../../../../common/loading-indicator/loading-indicator';
+import { PageChange, Pager } from '../../../../common/pager/pager';
 import { PageHeader } from '../../../../common/page-header/page-header';
 import { CreateUserDto } from '../../../../core/api/models';
 import { toSubmitErrors } from '../../../../core/forms/form-utils';
@@ -17,13 +20,24 @@ interface UserFormModel {
 
 const EMPTY: UserFormModel = { email: '', displayName: '' };
 
+/** Every user, newest first, with a form to add one. */
 @Component({
-  selector: 'app-user-create',
-  imports: [DatePipe, FormField, FormFieldGroup, PageHeader, CopyButton, EmptyState],
-  templateUrl: './user-create.html',
-  styleUrl: './user-create.scss',
+  selector: 'app-user-list',
+  imports: [
+    DatePipe,
+    FormField,
+    FormFieldGroup,
+    PageHeader,
+    CopyButton,
+    EmptyState,
+    ErrorBanner,
+    LoadingIndicator,
+    Pager,
+  ],
+  templateUrl: './user-list.html',
+  styleUrl: './user-list.scss',
 })
-export class UserCreate {
+export class UserList {
   protected readonly users = inject(UsersStore);
 
   protected readonly model = signal<UserFormModel>(EMPTY);
@@ -35,6 +49,14 @@ export class UserCreate {
     maxLength(path.email, 320, { message: 'At most 320 characters.' });
     maxLength(path.displayName, 120, { message: 'At most 120 characters.' });
   });
+
+  constructor() {
+    this.users.load(this.users.query);
+  }
+
+  protected page(change: PageChange): void {
+    this.users.setPage(change.limit, change.offset);
+  }
 
   protected async save(event: Event): Promise<void> {
     event.preventDefault();

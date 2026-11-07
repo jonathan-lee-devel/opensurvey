@@ -7,6 +7,7 @@ import { Redis } from 'ioredis';
 import request from 'supertest';
 
 import { AppModule } from './../src/app.module.js';
+import { SURVEY_ADMIN_CLAIM } from './../src/auth/auth.constants.js';
 import { EnvService } from './../src/config/env.schema.js';
 import { Database } from './../src/database/database.types.js';
 import { polls, users } from './../src/database/schema/index.js';
@@ -142,7 +143,7 @@ describe('Public response cache (e2e)', () => {
     it('are not cached', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
-        .set('Authorization', await bearer())
+        .set('Authorization', await bearer({ roles: [SURVEY_ADMIN_CLAIM] }))
         .send({ email: 'cache-admin@example.com' })
         .expect(201);
       expect(res.headers['x-cache']).toBeUndefined();

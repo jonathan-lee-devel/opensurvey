@@ -63,4 +63,27 @@ describe('AdminSurveysController', () => {
       unitRef.get(AdminSurveysService).listSubmissions,
     ).toHaveBeenCalledWith('s1', { limit: 10, offset: 0 });
   });
+
+  it('passes the id and changes to the service and returns the survey', async () => {
+    const survey = { id: 's1', title: 'Renamed', questions: [] };
+    const { unit, unitRef } = await TestBed.solitary(AdminSurveysController)
+      .mock(AdminSurveysService)
+      .impl((stub) => ({ update: stub().mockResolvedValue(survey) }))
+      .compile();
+
+    await expect(unit.update('s1', { title: 'Renamed' })).resolves.toBe(survey);
+    expect(unitRef.get(AdminSurveysService).update).toHaveBeenCalledWith('s1', {
+      title: 'Renamed',
+    });
+  });
+
+  it('deletes through the service and answers nothing', async () => {
+    const { unit, unitRef } = await TestBed.solitary(AdminSurveysController)
+      .mock(AdminSurveysService)
+      .impl((stub) => ({ remove: stub().mockResolvedValue(undefined) }))
+      .compile();
+
+    await expect(unit.remove('s1')).resolves.toBeUndefined();
+    expect(unitRef.get(AdminSurveysService).remove).toHaveBeenCalledWith('s1');
+  });
 });

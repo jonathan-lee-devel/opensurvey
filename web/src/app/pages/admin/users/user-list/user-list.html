@@ -1,7 +1,7 @@
 <app-page-header
   eyebrow="Users"
   title="Users"
-  lead="Users own surveys and polls. Create one here and copy its id into the owner field of a new survey."
+  lead="Users own surveys and polls. Create one here, then pick it as the owner of a new survey or poll."
 />
 
 <div class="layout">
@@ -54,24 +54,22 @@
     </div>
   </form>
 
-  <section aria-labelledby="created-title">
-    <h2 class="section-title" id="created-title">
-      Created this session <span class="muted">({{ users.entities().length }})</span>
+  <section aria-labelledby="list-title">
+    <h2 class="section-title" id="list-title">
+      All users <span class="muted">({{ users.total() }})</span>
     </h2>
-    <p class="muted note">
-      The API cannot list users yet, so only users created in this browser session appear here.
-    </p>
 
-    @if (users.entities().length === 0) {
-      <app-empty-state
-        title="No users created yet"
-        text="New users show up here with their id ready to copy."
-      />
+    @if (users.error(); as message) {
+      <app-error-banner [message]="message" (retry)="users.reload()" />
+    } @else if (users.isPending() && users.entities().length === 0) {
+      <app-loading-indicator label="Loading users…" />
+    } @else if (users.entities().length === 0) {
+      <app-empty-state title="No users yet" text="Create the first user with the form." />
     } @else {
-      <div class="table-wrap">
+      <div class="table-wrap" [attr.aria-busy]="users.isPending()">
         <table class="table">
           <caption>
-            Users created in this session, newest first
+            Users, newest first
           </caption>
           <thead>
             <tr>
@@ -98,6 +96,12 @@
           </tbody>
         </table>
       </div>
+      <app-pager
+        [total]="users.total()"
+        [limit]="users.limit()"
+        [offset]="users.offset()"
+        (pageChange)="page($event)"
+      />
     }
   </section>
 </div>

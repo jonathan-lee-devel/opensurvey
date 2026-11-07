@@ -6,6 +6,13 @@ export const IS_PUBLIC_KEY = 'auth:isPublic';
 /** Metadata key set by `@HasClaim()`: the claims a caller must hold, checked by `ClaimsGuard`. */
 export const REQUIRED_CLAIMS_KEY = 'auth:requiredClaims';
 
+/**
+ * The claim every `/admin/...` controller requires with `@HasClaim()`. The
+ * development Keycloak realm (`keycloak/opensurvey-realm.json`) grants it as a
+ * realm role, and the web console gates on the same name.
+ */
+export const SURVEY_ADMIN_CLAIM = 'azg12345_SurveyAdmin';
+
 /** Appears in the `WWW-Authenticate` header of every 401 the guards answer. */
 export const AUTH_REALM = 'opensurvey';
 

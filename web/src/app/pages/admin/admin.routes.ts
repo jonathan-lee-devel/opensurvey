@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { PollDetailStore } from '../../core/stores/poll-detail.store';
 import { SurveyDetailStore } from '../../core/stores/survey-detail.store';
 import { AdminShell } from './admin-shell/admin-shell';
 
@@ -32,12 +33,23 @@ export const ADMIN_ROUTES: Routes = [
       {
         path: 'polls',
         title: 'Polls — OpenSurvey admin',
+        loadComponent: () => import('./polls/poll-list/poll-list').then((m) => m.PollList),
+      },
+      {
+        path: 'polls/new',
+        title: 'New poll — OpenSurvey admin',
         loadComponent: () => import('./polls/poll-create/poll-create').then((m) => m.PollCreate),
+      },
+      {
+        path: 'polls/:id',
+        title: 'Poll — OpenSurvey admin',
+        providers: [PollDetailStore],
+        loadComponent: () => import('./polls/poll-detail/poll-detail').then((m) => m.PollDetail),
       },
       {
         path: 'users',
         title: 'Users — OpenSurvey admin',
-        loadComponent: () => import('./users/user-create/user-create').then((m) => m.UserCreate),
+        loadComponent: () => import('./users/user-list/user-list').then((m) => m.UserList),
       },
     ],
   },

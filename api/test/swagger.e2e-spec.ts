@@ -42,6 +42,7 @@ describe('Swagger (e2e)', () => {
     );
     expect(Object.keys(body.paths).sort()).toEqual([
       '/admin/polls',
+      '/admin/polls/{id}',
       '/admin/surveys',
       '/admin/surveys/{id}',
       '/admin/surveys/{id}/submissions',
@@ -76,6 +77,7 @@ describe('Swagger (e2e)', () => {
     expect(Object.keys(post.responses).sort()).toEqual([
       '201',
       '401',
+      '403',
       '409',
       '422',
     ]);

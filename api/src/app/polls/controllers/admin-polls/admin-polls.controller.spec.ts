@@ -23,4 +23,27 @@ describe('AdminPollsController', () => {
     await expect(unit.create(dto)).resolves.toBe(poll);
     expect(unitRef.get(AdminPollsService).create).toHaveBeenCalledWith(dto);
   });
+
+  it('passes the list query to the service and returns the page', async () => {
+    const page = { items: [], total: 0 };
+    const { unit, unitRef } = await TestBed.solitary(AdminPollsController)
+      .mock(AdminPollsService)
+      .impl((stub) => ({ list: stub().mockResolvedValue(page) }))
+      .compile();
+
+    const query = { limit: 10, offset: 0, status: 'published' as const };
+    await expect(unit.list(query)).resolves.toBe(page);
+    expect(unitRef.get(AdminPollsService).list).toHaveBeenCalledWith(query);
+  });
+
+  it('passes the id to the service and returns the poll', async () => {
+    const poll = { id: 'p1', question: 'Lunch?', options: [] };
+    const { unit, unitRef } = await TestBed.solitary(AdminPollsController)
+      .mock(AdminPollsService)
+      .impl((stub) => ({ findById: stub().mockResolvedValue(poll) }))
+      .compile();
+
+    await expect(unit.findById('p1')).resolves.toBe(poll);
+    expect(unitRef.get(AdminPollsService).findById).toHaveBeenCalledWith('p1');
+  });
 });

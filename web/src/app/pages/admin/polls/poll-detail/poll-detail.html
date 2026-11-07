@@ -1,0 +1,71 @@
+<p class="breadcrumb"><a routerLink="/admin/polls">← All polls</a></p>
+
+@if (store.error(); as message) {
+  <app-error-banner [message]="message" (retry)="store.reload()" />
+} @else if (!store.poll()) {
+  <app-loading-indicator label="Loading poll…" />
+} @else if (store.poll(); as poll) {
+  <app-page-header eyebrow="Poll" [title]="poll.question">
+    <app-status-badge [status]="poll.status" />
+  </app-page-header>
+
+  <div class="layout">
+    <section class="panel" aria-labelledby="about-title">
+      <h2 class="panel__title" id="about-title">About</h2>
+      <dl class="meta">
+        <div class="meta__row">
+          <dt>Slug</dt>
+          <dd class="meta__value">
+            <code>{{ poll.slug }}</code>
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Public endpoint</dt>
+          <dd class="meta__value">
+            <code class="meta__code">{{ publicUrl(poll.slug) }}</code>
+            <app-copy-button [value]="publicUrl(poll.slug)" label="public endpoint" />
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Owner</dt>
+          <dd class="meta__value">
+            <code class="meta__code">{{ poll.ownerId }}</code>
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Closes</dt>
+          <dd class="meta__value">
+            @if (poll.closesAt) {
+              {{ poll.closesAt | date: 'medium' }}
+            } @else {
+              Stays open
+            }
+          </dd>
+        </div>
+        <div class="meta__row">
+          <dt>Created</dt>
+          <dd class="meta__value">{{ poll.createdAt | date: 'medium' }}</dd>
+        </div>
+        <div class="meta__row">
+          <dt>Updated</dt>
+          <dd class="meta__value">{{ poll.updatedAt | date: 'medium' }}</dd>
+        </div>
+      </dl>
+      @if (poll.status !== 'published') {
+        <p class="note muted">
+          Only published polls are visible at the public endpoint. Changing a poll's status is not
+          available in the API yet.
+        </p>
+      }
+    </section>
+
+    <section class="panel" aria-labelledby="options-title">
+      <h2 class="panel__title" id="options-title">Options ({{ poll.options.length }})</h2>
+      <ol class="options">
+        @for (option of poll.options; track option.id) {
+          <li>{{ option.label }}</li>
+        }
+      </ol>
+    </section>
+  </div>
+}

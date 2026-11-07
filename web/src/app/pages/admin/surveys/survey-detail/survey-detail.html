@@ -7,12 +7,107 @@
 } @else if (store.survey(); as survey) {
   <app-page-header eyebrow="Survey" [title]="survey.title">
     <app-status-badge [status]="survey.status" />
+    @for (status of statuses; track status) {
+      @if (status !== survey.status) {
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm"
+          [disabled]="changingStatus() !== null"
+          (click)="setStatus(status)"
+        >
+          @switch (status) {
+            @case ('published') {
+              {{ changingStatus() === status ? 'Publishing…' : 'Publish' }}
+            }
+            @case ('closed') {
+              {{ changingStatus() === status ? 'Closing…' : 'Close' }}
+            }
+            @default {
+              {{ changingStatus() === status ? 'Saving…' : 'Back to draft' }}
+            }
+          }
+        </button>
+      }
+    }
+    <button type="button" class="btn btn--danger btn--sm" (click)="confirmDelete()">Delete</button>
   </app-page-header>
+
+  <app-confirm-dialog
+    title="Delete this survey?"
+    [message]="
+      '“' + survey.title + '” and every submission to it will be removed. This cannot be undone.'
+    "
+    confirmLabel="Delete survey"
+    [danger]="true"
+  />
 
   <div class="layout">
     <section class="panel" aria-labelledby="about-title">
-      <h2 class="panel__title" id="about-title">About</h2>
-      @if (survey.description) {
+      <div class="panel__head">
+        <h2 class="panel__title" id="about-title">About</h2>
+        @if (!editing()) {
+          <button type="button" class="btn btn--ghost btn--sm" (click)="startEdit(survey)">
+            Edit details
+          </button>
+        }
+      </div>
+      @if (editing()) {
+        <form class="edit" novalidate (submit)="saveEdit($event)" aria-label="Edit survey details">
+          <app-form-field [field]="editForm.title" label="Title" controlId="edit-title">
+            <input class="input" id="edit-title" type="text" [formField]="editForm.title" />
+          </app-form-field>
+          <app-form-field
+            [field]="editForm.description"
+            label="Description"
+            controlId="edit-description"
+          >
+            <textarea
+              class="textarea"
+              id="edit-description"
+              rows="3"
+              [formField]="editForm.description"
+            ></textarea>
+          </app-form-field>
+          <app-form-field
+            [field]="editForm.slug"
+            label="Slug"
+            controlId="edit-slug"
+            hint="Renaming moves the public link at once."
+          >
+            <input
+              class="input mono"
+              id="edit-slug"
+              type="text"
+              spellcheck="false"
+              [formField]="editForm.slug"
+              aria-describedby="edit-slug-hint"
+            />
+          </app-form-field>
+          @if (editForm().errors().length > 0) {
+            <p class="edit__error" role="alert">
+              @for (error of editForm().errors(); track $index) {
+                {{ error.message }}
+              }
+            </p>
+          }
+          <div class="edit__actions">
+            <button
+              type="submit"
+              class="btn btn--primary btn--sm"
+              [disabled]="editForm().submitting()"
+            >
+              @if (editForm().submitting()) {
+                Saving…
+              } @else {
+                Save
+              }
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" (click)="cancelEdit()">
+              Cancel
+            </button>
+          </div>
+        </form>
+      } @else if (survey.description) {
         <p class="description">{{ survey.description }}</p>
       }
       <dl class="meta">
@@ -46,8 +141,8 @@
       </dl>
       @if (survey.status !== 'published') {
         <p class="note muted">
-          Only published surveys are visible at the public endpoint. Changing a survey's status is
-          not available in the API yet.
+          Only published surveys answer at the public endpoint; this one is
+          {{ survey.status | statusLabel | lowercase }}.
         </p>
       }
     </section>

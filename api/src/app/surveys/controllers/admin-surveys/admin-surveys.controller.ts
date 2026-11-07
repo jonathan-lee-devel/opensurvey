@@ -1,8 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
@@ -10,11 +22,14 @@ import {
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
+import { SURVEY_ADMIN_CLAIM } from '../../../../auth/auth.constants.js';
+import { HasClaim } from '../../../../auth/decorators/has-claim.decorator.js';
 import { AdminSurveysService } from '../../services/admin-surveys/admin-surveys.service.js';
 import type {
   CreateSurveyDto,
   ListSubmissionsQuery,
   ListSurveysQuery,
+  UpdateSurveyDto,
 } from './admin-surveys.schema.js';
 import {
   adminSubmissionListSchema,
@@ -24,12 +39,18 @@ import {
   listSubmissionsQuerySchema,
   listSurveysQuerySchema,
   surveyIdSchema,
+  updateSurveySchema,
 } from './admin-surveys.schema.js';
 
 @ApiTags('surveys')
 @Controller('admin/surveys')
+// Needs a Bearer token (AuthGuard, the default) holding the admin claim.
+@HasClaim(SURVEY_ADMIN_CLAIM)
 @ApiBearerAuth()
 @ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token.' })
+@ApiForbiddenResponse({
+  description: `The token does not hold the ${SURVEY_ADMIN_CLAIM} claim.`,
+})
 export class AdminSurveysController {
   constructor(private readonly adminSurveys: AdminSurveysService) {}
 
@@ -73,6 +94,39 @@ export class AdminSurveysController {
   @ApiNotFoundResponse({ description: 'No survey has this id.' })
   findById(@Param('id', { schema: surveyIdSchema }) id: string) {
     return this.adminSurveys.findById(id);
+  }
+
+  /**
+   * Update a survey's title, description, slug or status
+   *
+   * @remarks Send only the fields to change. Publishing makes the survey
+   * readable at its public link; closing or renaming the slug takes effect
+   * there at once, the cached public response is dropped. Questions cannot be
+   * changed once a survey exists.
+   */
+  @Patch(':id')
+  @ApiOkResponse({ standardSchema: adminSurveySchema })
+  @ApiNotFoundResponse({ description: 'No survey has this id.' })
+  @ApiConflictResponse({ description: 'A survey with this slug exists.' })
+  update(
+    @Param('id', { schema: surveyIdSchema }) id: string,
+    @Body({ schema: updateSurveySchema }) dto: UpdateSurveyDto,
+  ) {
+    return this.adminSurveys.update(id, dto);
+  }
+
+  /**
+   * Delete a survey
+   *
+   * @remarks Removes the survey with its questions, submissions and answers,
+   * and drops its cached public response.
+   */
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: 'The survey is gone.' })
+  @ApiNotFoundResponse({ description: 'No survey has this id.' })
+  async remove(@Param('id', { schema: surveyIdSchema }) id: string) {
+    await this.adminSurveys.remove(id);
   }
 
   /**

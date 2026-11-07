@@ -1,3 +1,4 @@
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import {
   ConflictException,
   NotFoundException,
@@ -32,6 +33,7 @@ const dto: CreateSurveyDto = {
 describe('AdminSurveysService', () => {
   let service: AdminSurveysService;
   let db: Mocked<Database>;
+  let cache: Mocked<Cache>;
   // Each tx.insert(...).values(...).returning() call pops the next result.
   let values: Stub<unknown[]>;
   let returning: Stub<unknown[]>;
@@ -50,6 +52,7 @@ describe('AdminSurveysService', () => {
       .compile();
     service = unit;
     db = unitRef.get<Database>(getDrizzleToken());
+    cache = unitRef.get<Cache>(CACHE_MANAGER);
   });
 
   it('inserts the survey then its questions, positioned by request order', async () => {
@@ -180,6 +183,87 @@ describe('AdminSurveysService', () => {
         service.listSubmissions(surveyId, { limit: 50, offset: 0 }),
       ).rejects.toBeInstanceOf(NotFoundException);
       expect(db.query.surveyAnswerSubmissions.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update', () => {
+    const surveyId = '22222222-2222-4222-8222-222222222222';
+    let returning: Stub<unknown[]>;
+
+    beforeEach(() => {
+      returning = stub();
+      db.update.mockReturnValue({
+        set: () => ({ where: () => ({ returning }) }),
+      } as never);
+      db.query.surveys.findFirst
+        .mockResolvedValueOnce({ id: surveyId, slug: 'old' } as never)
+        .mockResolvedValueOnce({
+          id: surveyId,
+          slug: 'new',
+          questions: [],
+        } as never);
+    });
+
+    it('updates the row, drops both cached public responses and returns the survey', async () => {
+      returning.mockResolvedValue([{ slug: 'new' }]);
+
+      const result = await service.update(surveyId, { slug: 'new' });
+
+      expect(result).toMatchObject({ id: surveyId, slug: 'new' });
+      expect(cache.del).toHaveBeenCalledWith('/public/surveys/old');
+      expect(cache.del).toHaveBeenCalledWith('/public/surveys/new');
+    });
+
+    it('drops the one cached response when the slug is unchanged', async () => {
+      returning.mockResolvedValue([{ slug: 'old' }]);
+      await service.update(surveyId, { status: 'closed' });
+      expect(cache.del).toHaveBeenCalledTimes(1);
+      expect(cache.del).toHaveBeenCalledWith('/public/surveys/old');
+    });
+
+    it('maps a unique violation on the slug to ConflictException', async () => {
+      returning.mockRejectedValue(
+        new Error('Failed query', { cause: { code: '23505' } }),
+      );
+      await expect(
+        service.update(surveyId, { slug: 'taken' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(cache.del).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when no survey has the id', async () => {
+      db.query.surveys.findFirst.mockReset().mockResolvedValue(undefined);
+      await expect(
+        service.update(surveyId, { title: 'x' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(db.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('remove', () => {
+    const surveyId = '22222222-2222-4222-8222-222222222222';
+    let returning: Stub<unknown[]>;
+
+    beforeEach(() => {
+      returning = stub();
+      // Cast past Drizzle's delete overloads, which the deep mock type cannot resolve.
+      (db.delete as unknown as Stub<unknown[]>).mockReturnValue({
+        where: () => ({ returning }),
+      });
+    });
+
+    it('deletes the row and drops its cached public response', async () => {
+      returning.mockResolvedValue([{ slug: 'gone' }]);
+      await expect(service.remove(surveyId)).resolves.toBeUndefined();
+      expect(cache.del).toHaveBeenCalledWith('/public/surveys/gone');
+    });
+
+    it('throws NotFoundException when nothing was deleted', async () => {
+      returning.mockResolvedValue([]);
+      await expect(service.remove(surveyId)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(cache.del).not.toHaveBeenCalled();
     });
   });
 });

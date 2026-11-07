@@ -136,7 +136,7 @@ yarn start
 
 The Angular dev server runs at `http://localhost:4200` and reloads when files change. It proxies `/api/*` to the API on port 3000 (`web/proxy.conf.json`), the same shape as the nginx in the web container, so the browser only ever talks to one origin.
 
-The landing page links to the **admin console** at `http://localhost:4200/admin`, which signs in with the development Keycloak through OpenID Connect (authorization code flow with PKCE, client `opensurvey-web`). Use `admin@opensurvey.local` / `admin` for an account with the admin role, or `user@opensurvey.local` / `user` to see the console refuse an account without it. The console lists surveys with their submissions and creates surveys, polls and users against the `/admin/...` routes; it needs the API and the `infrastructure` profile running.
+The landing page links to the **admin console** at `http://localhost:4200/admin`, which signs in with the development Keycloak through OpenID Connect (authorization code flow with PKCE, client `opensurvey-web`). Use `admin@opensurvey.local` / `admin` for an account with the admin role, or `user@opensurvey.local` / `user` to see the console refuse an account without it. The console lists surveys, polls and users, shows a survey's submissions, creates all three, and publishes, closes, edits or deletes a survey against the `/admin/...` routes; it needs the API and the `infrastructure` profile running.
 
 The identity provider, client id and admin role the console expects are build-time settings in `web/src/environments/environment.ts` (development) and `environment.production.ts` (production builds and the Docker image). Point those at your own provider when you deploy; the API side is `AUTH_JWKS_URL`, `AUTH_ISSUER` and `AUTH_AUDIENCE`.
 

@@ -10,6 +10,7 @@ import {
   CreateSurveyDto,
   ListSubmissionsQuery,
   ListSurveysQuery,
+  UpdateSurveyDto,
 } from './models';
 import { pageParams } from './page-params';
 
@@ -33,6 +34,14 @@ export class AdminSurveysService {
 
   findById(id: string): Observable<AdminSurvey> {
     return this.http.get<AdminSurvey>(`${this.baseUrl}/${encodeURIComponent(id)}`);
+  }
+
+  update(id: string, dto: UpdateSurveyDto): Observable<AdminSurvey> {
+    return this.http.patch<AdminSurvey>(`${this.baseUrl}/${encodeURIComponent(id)}`, dto);
+  }
+
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(id)}`);
   }
 
   listSubmissions(id: string, query: ListSubmissionsQuery = {}): Observable<AdminSubmissionList> {

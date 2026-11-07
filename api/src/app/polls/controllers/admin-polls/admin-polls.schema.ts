@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { pageQuerySchema } from '../../../../common/paging.schema.js';
 import { slugSchema } from '../../../../common/slug.schema.js';
 import { publishStatus } from '../../../../database/schema/index.js';
 
@@ -38,3 +39,28 @@ export const adminPollSchema = z.object({
 });
 
 export type AdminPoll = z.infer<typeof adminPollSchema>;
+
+export const pollIdSchema = z.uuid().describe('The poll id');
+
+/** Paging and an optional status filter for the poll list. */
+export const listPollsQuerySchema = pageQuerySchema.extend({
+  status: z
+    .enum(publishStatus.enumValues)
+    .optional()
+    .describe('Only polls with this status'),
+});
+
+export type ListPollsQuery = z.infer<typeof listPollsQuerySchema>;
+
+/** A poll in the list: everything but its options. */
+export const adminPollSummarySchema = adminPollSchema.omit({ options: true });
+
+export type AdminPollSummary = z.infer<typeof adminPollSummarySchema>;
+
+export const adminPollListSchema = z.object({
+  items: z.array(adminPollSummarySchema),
+  /** Polls matching the filter in total, whatever the paging. */
+  total: z.int().nonnegative(),
+});
+
+export type AdminPollList = z.infer<typeof adminPollListSchema>;
