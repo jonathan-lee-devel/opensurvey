@@ -1,0 +1,208 @@
+<a class="skip-link" href="#main">Skip to content</a>
+
+<div class="page">
+  <header class="header">
+    <a class="brand" routerLink="/" aria-label="OpenSurvey home">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="take-brand-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#1d5fea" />
+            <stop offset="1" stop-color="#2884ea" />
+          </linearGradient>
+        </defs>
+        <rect width="32" height="32" rx="8" fill="url(#take-brand-gradient)" />
+        <rect x="7" y="17" width="4" height="8" rx="1.5" fill="#fff" />
+        <rect x="14" y="11" width="4" height="14" rx="1.5" fill="#fff" />
+        <rect x="21" y="7" width="4" height="18" rx="1.5" fill="#fff" />
+      </svg>
+      <span>OpenSurvey</span>
+    </a>
+  </header>
+
+  <main id="main" class="main">
+    @if (store.error(); as message) {
+      @if (message === 'Not found.' || message.startsWith('No published survey')) {
+        <section class="card card--center" aria-labelledby="gone-title">
+          <h1 id="gone-title" class="card__title">This survey isn't open</h1>
+          <p class="card__text">
+            There is no published survey at this link. It may have been closed, or the link may be
+            wrong. Ask whoever sent it to you.
+          </p>
+        </section>
+      } @else {
+        <app-error-banner [message]="message" (retry)="store.reload()" />
+      }
+    } @else if (!store.survey()) {
+      <app-loading-indicator label="Loading survey…" />
+    } @else if (store.receipt(); as receipt) {
+      <section class="card card--center" aria-labelledby="done-title">
+        <p class="eyebrow">Thank you</p>
+        <h1 id="done-title" class="card__title">Your answers are in</h1>
+        <p class="card__text">
+          Recorded {{ receipt.submittedAt | date: 'medium' }}. Your receipt number is
+          <code>{{ receipt.id }}</code
+          >.
+        </p>
+      </section>
+    } @else if (store.survey(); as survey) {
+      <form class="card survey" novalidate (submit)="send($event)" aria-labelledby="survey-title">
+        <header class="survey__head">
+          <h1 id="survey-title" class="card__title">{{ survey.title }}</h1>
+          @if (survey.description) {
+            <p class="card__text">{{ survey.description }}</p>
+          }
+          <p class="muted survey__hint">
+            Questions marked <span class="required-mark" aria-hidden="true">*</span>
+            <span class="visually-hidden">with an asterisk</span> need an answer.
+          </p>
+        </header>
+
+        <ol class="questions">
+          @for (question of survey.questions; track question.id; let i = $index) {
+            @if (form.answers[i]; as slot) {
+              <li class="question">
+                @switch (question.type) {
+                  @case ('short_text') {
+                    <label class="question__prompt" [for]="'q-' + i">
+                      {{ question.prompt }}
+                      @if (question.required) {
+                        <span class="required-mark" aria-hidden="true">*</span>
+                      }
+                    </label>
+                    <input
+                      class="input"
+                      type="text"
+                      [id]="'q-' + i"
+                      [formField]="slot.text"
+                      [attr.aria-required]="question.required"
+                      [attr.aria-invalid]="slot.text().invalid() && slot.text().touched()"
+                      [attr.aria-describedby]="'q-' + i + '-error'"
+                      autocomplete="off"
+                    />
+                    @if (slot.text().invalid() && slot.text().touched()) {
+                      <p class="question__error" [id]="'q-' + i + '-error'">
+                        {{ slot.text().errors()[0]?.message }}
+                      </p>
+                    }
+                  }
+                  @case ('long_text') {
+                    <label class="question__prompt" [for]="'q-' + i">
+                      {{ question.prompt }}
+                      @if (question.required) {
+                        <span class="required-mark" aria-hidden="true">*</span>
+                      }
+                    </label>
+                    <textarea
+                      class="textarea"
+                      rows="4"
+                      [id]="'q-' + i"
+                      [formField]="slot.text"
+                      [attr.aria-required]="question.required"
+                      [attr.aria-invalid]="slot.text().invalid() && slot.text().touched()"
+                      [attr.aria-describedby]="'q-' + i + '-error'"
+                    ></textarea>
+                    @if (slot.text().invalid() && slot.text().touched()) {
+                      <p class="question__error" [id]="'q-' + i + '-error'">
+                        {{ slot.text().errors()[0]?.message }}
+                      </p>
+                    }
+                  }
+                  @case ('single_choice') {
+                    <fieldset class="group" [attr.aria-required]="question.required">
+                      <legend class="question__prompt">
+                        {{ question.prompt }}
+                        @if (question.required) {
+                          <span class="required-mark" aria-hidden="true">*</span>
+                        }
+                      </legend>
+                      @for (option of question.options ?? []; track option; let j = $index) {
+                        <label class="choice">
+                          <input type="radio" [value]="option" [formField]="slot.choice" />
+                          <span>{{ option }}</span>
+                        </label>
+                      }
+                      @if (slot.choice().invalid() && slot.choice().touched()) {
+                        <p class="question__error">{{ slot.choice().errors()[0]?.message }}</p>
+                      }
+                    </fieldset>
+                  }
+                  @case ('multiple_choice') {
+                    <fieldset class="group" [attr.aria-required]="question.required">
+                      <legend class="question__prompt">
+                        {{ question.prompt }}
+                        @if (question.required) {
+                          <span class="required-mark" aria-hidden="true">*</span>
+                        }
+                        <span class="muted question__note">(choose any)</span>
+                      </legend>
+                      @for (option of question.options ?? []; track option) {
+                        <label class="choice">
+                          <input
+                            type="checkbox"
+                            [name]="'q-' + i"
+                            [value]="option"
+                            [checked]="slot.choices().value().includes(option)"
+                            (change)="toggleChoice(i, option, $any($event.target).checked)"
+                            (blur)="slot.choices().markAsTouched()"
+                          />
+                          <span>{{ option }}</span>
+                        </label>
+                      }
+                      @if (slot.choices().invalid() && slot.choices().touched()) {
+                        <p class="question__error">{{ slot.choices().errors()[0]?.message }}</p>
+                      }
+                    </fieldset>
+                  }
+                  @case ('rating') {
+                    <fieldset class="group" [attr.aria-required]="question.required">
+                      <legend class="question__prompt">
+                        {{ question.prompt }}
+                        @if (question.required) {
+                          <span class="required-mark" aria-hidden="true">*</span>
+                        }
+                        <span class="muted question__note">(1 is lowest, 5 is highest)</span>
+                      </legend>
+                      <div class="rating">
+                        @for (value of ratingScale; track value) {
+                          <label class="rating__option">
+                            <input type="radio" [value]="value" [formField]="slot.rating" />
+                            <span>{{ value }}</span>
+                          </label>
+                        }
+                      </div>
+                      @if (slot.rating().invalid() && slot.rating().touched()) {
+                        <p class="question__error">{{ slot.rating().errors()[0]?.message }}</p>
+                      }
+                    </fieldset>
+                  }
+                }
+              </li>
+            }
+          }
+        </ol>
+
+        @if (form.answers().touched() && form.answers().errors().length > 0) {
+          <p class="form__error" role="alert">{{ form.answers().errors()[0]?.message }}</p>
+        }
+        @if (submitError(); as message) {
+          <p class="form__error" role="alert">{{ message }}</p>
+        }
+
+        <div class="survey__actions">
+          <button type="submit" class="btn btn--primary" [disabled]="form().submitting()">
+            @if (form().submitting()) {
+              Sending…
+            } @else {
+              Send answers
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </main>
+
+  <footer class="footer muted">
+    Collected with <a routerLink="/">OpenSurvey</a>, open-source and self-hosted. Only the answers
+    you send are stored.
+  </footer>
+</div>

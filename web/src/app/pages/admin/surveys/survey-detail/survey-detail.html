@@ -118,6 +118,15 @@
           </dd>
         </div>
         <div class="meta__row">
+          <dt>Public link</dt>
+          <dd class="meta__value">
+            <a class="meta__link" [href]="publicLink(survey.slug)" target="_blank" rel="noopener">
+              {{ publicLink(survey.slug) }}
+            </a>
+            <app-copy-button [value]="publicLink(survey.slug)" label="public link" />
+          </dd>
+        </div>
+        <div class="meta__row">
           <dt>Public endpoint</dt>
           <dd class="meta__value">
             <code class="meta__code">{{ publicUrl(survey.slug) }}</code>

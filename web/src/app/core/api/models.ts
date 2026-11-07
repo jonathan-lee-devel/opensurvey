@@ -202,3 +202,33 @@ export interface AdminUser {
 }
 
 export type AdminUserList = PagedList<AdminUser>;
+
+// --- Public ---------------------------------------------------------------
+
+/** What anyone with the link may see about a published survey. */
+export interface PublicSurvey {
+  readonly id: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly slug: string;
+  readonly status: PublishStatus;
+  readonly questions: readonly AdminQuestion[];
+}
+
+export interface SubmissionAnswerDto {
+  readonly questionId: string;
+  /** Text, an integer rating, one option label, or several labels. */
+  readonly value: AnswerValue;
+}
+
+/** One answer per question; required questions must be answered; 1 to 50 answers. */
+export interface CreateSubmissionDto {
+  readonly answers: readonly SubmissionAnswerDto[];
+}
+
+/** What the respondent gets back: a receipt, never the metadata recorded. */
+export interface PublicSubmission {
+  readonly id: string;
+  readonly surveyId: string;
+  readonly submittedAt: string;
+}

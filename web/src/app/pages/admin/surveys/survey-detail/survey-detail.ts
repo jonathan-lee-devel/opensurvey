@@ -1,4 +1,4 @@
-import { DatePipe, LowerCasePipe } from '@angular/common';
+import { DOCUMENT, DatePipe, LowerCasePipe } from '@angular/common';
 import { Component, effect, inject, input, signal, viewChild } from '@angular/core';
 import { FormField, form, maxLength, pattern, required, submit } from '@angular/forms/signals';
 import { Router, RouterLink } from '@angular/router';
@@ -63,6 +63,7 @@ export class SurveyDetail {
   protected readonly apiBaseUrl = environment.apiBaseUrl;
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastsStore);
+  private readonly origin = inject(DOCUMENT).defaultView?.location.origin ?? '';
   private readonly deleteDialog = viewChild.required(ConfirmDialog);
 
   /** Which status change is in flight, so its button can show it. */
@@ -90,6 +91,11 @@ export class SurveyDetail {
 
   protected page(change: PageChange): void {
     this.store.setPage(change.limit, change.offset);
+  }
+
+  /** The page respondents fill in: this app's own `/s/<slug>` route. */
+  protected publicLink(slug: string): string {
+    return `${this.origin}/s/${slug}`;
   }
 
   /** The public endpoint respondents' clients read the survey from. */
