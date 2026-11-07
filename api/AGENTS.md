@@ -23,6 +23,14 @@ Request validation is Zod through `StandardSchemaValidationPipe`, registered glo
 
 Nest's packages are ESM only, and this project is ESM too: relative imports end in `.js`, `__dirname` doesn't exist (use `import.meta.dirname`), and tests run on Vitest, so mocks are `vi.fn()`, not `jest.fn()`.
 
+## OpenAPI: @nestjs/swagger
+
+`src/swagger.ts` exports `setupSwagger(app)`, which `src/main.ts` calls before `listen()`: Swagger UI at http://localhost:3000/docs, the raw document at `/docs-json` and `/docs-yaml`. It is not part of `AppModule`, so an e2e test that needs it must call `setupSwagger(app)` before `app.init()` (`test/swagger.e2e-spec.ts`).
+
+- Request schemas come from the Zod schemas already attached with `@Body({ schema })`, `@Query({ schema })` and `@Param(..., { schema })`; Zod 4.2+ converts itself, so no `@ApiBody`/`@ApiProperty` duplication is needed for them. Response types still need `@ApiOkResponse({ type })` or similar, and classes used there need `@ApiProperty()` or the CLI plugin.
+- The `@nestjs/swagger` CLI plugin is enabled in `nest-cli.json` with `introspectComments: true`, so a JSDoc comment on a handler becomes its `summary`/`description`; `classValidatorShim` is off because this app has no class-validator DTOs. The plugin runs under `nest build`/`nest start` only, not under Vitest, so e2e tests see the document without plugin-derived metadata.
+- Group routes with `@ApiTags('polls')` on the controller.
+
 ## Database: Drizzle ORM
 
 The database is PostgreSQL through [`@nestjs/drizzle`](https://docs.nestjs.com/data/drizzle.md) and Drizzle ORM **0.45** (not the v1 release candidate the Nest docs show: relations use `relations()` from `drizzle-orm`, not `defineRelations`, and the schema is passed to `drizzle()` as `schema`).

@@ -1,4 +1,4 @@
 import { Controller } from '@nestjs/common';
 
-@Controller('public-polls')
+@Controller('public/polls')
 export class PublicPollsController {}

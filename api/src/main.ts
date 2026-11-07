@@ -4,6 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule, ObserveInstrument } from './app.module.js';
 import { EnvService } from './config/env.schema.js';
+import { setupSwagger } from './swagger.js';
 
 /**
  * Turns the TRUST_PROXY string into the value Express expects: `true`/`false`
@@ -31,6 +32,8 @@ async function bootstrap() {
   if (trustProxy !== undefined) {
     app.set('trust proxy', parseTrustProxy(trustProxy));
   }
+  // Swagger UI at /docs, raw OpenAPI document at /docs-json and /docs-yaml.
+  setupSwagger(app);
   await app.listen(config.get('PORT', { infer: true }));
 }
 await bootstrap();

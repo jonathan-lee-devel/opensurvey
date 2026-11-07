@@ -1,4 +1,4 @@
 import { Controller } from '@nestjs/common';
 
-@Controller('public-surveys')
+@Controller('public/surveys')
 export class PublicSurveysController {}
