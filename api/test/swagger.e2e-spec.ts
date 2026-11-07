@@ -41,6 +41,9 @@ describe('Swagger (e2e)', () => {
       `/${DOCS_PATH}-json`,
     );
     expect(Object.keys(body.paths).sort()).toEqual([
+      '/admin/polls',
+      '/admin/surveys',
+      '/admin/users',
       '/public/polls/{slug}',
       '/public/surveys/{slug}',
       '/public/users/{id}',
@@ -57,6 +60,17 @@ describe('Swagger (e2e)', () => {
       get.responses['200'].content['application/json'].schema,
     ).toBeDefined();
     expect(get.responses['404']).toBeDefined();
+
+    const post = body.paths['/admin/polls'].post;
+    const bodySchema = post.requestBody.content['application/json'].schema;
+    expect(bodySchema.required).toEqual(
+      expect.arrayContaining(['ownerId', 'question', 'slug', 'options']),
+    );
+    expect(bodySchema.properties.options).toMatchObject({
+      type: 'array',
+      minItems: 2,
+    });
+    expect(Object.keys(post.responses).sort()).toEqual(['201', '409', '422']);
   });
 
   afterAll(async () => {
