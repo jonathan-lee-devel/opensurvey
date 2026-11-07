@@ -1,5 +1,7 @@
+import { createKeyv } from '@keyv/redis';
 import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
-import { Module, StandardSchemaValidationPipe } from '@nestjs/common';
+import { CacheModule } from '@nestjs/cache-manager';
+import { Logger, Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
 import { createObserveModule } from '@nestjs/observe';
@@ -58,6 +60,35 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
           config.getOrThrow('REDIS_URL', { infer: true }),
         ),
       }),
+    }),
+    // Response cache for the public read routes. The `public-*` controllers
+    // opt in with @UseInterceptors(CacheInterceptor), which stores each GET's
+    // JSON body in Redis under its URL for CACHE_TTL_MS and answers repeats
+    // from there, flagged with an X-Cache: HIT header. Entries live in the
+    // `cache` namespace, apart from the rate limiter's counters; the module
+    // disconnects the store on shutdown. A Redis outage only disables caching:
+    // the interceptor falls through to the handler and logs the failure.
+    CacheModule.registerAsync({
+      isGlobal: true,
+      inject: [ConfigService],
+      useFactory: (config: EnvService) => {
+        const store = createKeyv(
+          config.getOrThrow('REDIS_URL', { infer: true }),
+          { namespace: 'cache' },
+        );
+        // Keyv emits connection failures as `error` events; left unhandled
+        // they would crash the process instead of degrading to no cache.
+        store.on('error', (error: Error) => {
+          new Logger(CacheModule.name).error(
+            `Redis cache store error: ${error.message}`,
+            error.stack,
+          );
+        });
+        return {
+          stores: [store],
+          ttl: config.get('CACHE_TTL_MS', { infer: true }),
+        };
+      },
     }),
     DatabaseModule,
     SurveysModule,

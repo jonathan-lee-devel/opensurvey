@@ -1,3 +1,5 @@
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants.js';
 import { TestBed } from '@suites/unit';
 
 import { PublicPollsService } from '../../services/public-polls/public-polls.service.js';
@@ -15,5 +17,11 @@ describe('PublicPollsController', () => {
     expect(unitRef.get(PublicPollsService).findBySlug).toHaveBeenCalledWith(
       'lunch',
     );
+  });
+
+  it('caches its responses with CacheInterceptor', () => {
+    expect(
+      Reflect.getMetadata(INTERCEPTORS_METADATA, PublicPollsController),
+    ).toEqual([CacheInterceptor]);
   });
 });

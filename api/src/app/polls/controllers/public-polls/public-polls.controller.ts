@@ -1,4 +1,5 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { PublicPollsService } from '../../services/public-polls/public-polls.service.js';
@@ -6,6 +7,7 @@ import { pollSlugSchema, publicPollSchema } from './public-polls.schema.js';
 
 @ApiTags('polls')
 @Controller('public/polls')
+@UseInterceptors(CacheInterceptor)
 export class PublicPollsController {
   constructor(private readonly publicPolls: PublicPollsService) {}
 

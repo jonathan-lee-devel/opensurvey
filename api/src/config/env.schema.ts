@@ -18,7 +18,8 @@ export const envSchema = z.object({
       'must be a postgres:// connection string. Copy .env.example to .env and point it at a PostgreSQL database.',
   }),
   // Backs the rate limiter (ThrottlerModule in app.module.ts), so every API
-  // instance shares one set of counters.
+  // instance shares one set of counters, and the public response cache
+  // (CacheModule), so every instance serves the same cached bodies.
   REDIS_URL: z.url({
     protocol: /^rediss?$/,
     error:
@@ -28,6 +29,8 @@ export const envSchema = z.object({
   // per THROTTLE_TTL_MS window. Routes can override it with @Throttle().
   THROTTLE_TTL_MS: z.coerce.number().int().positive().default(60_000),
   THROTTLE_LIMIT: z.coerce.number().int().positive().default(100),
+  // How long a public GET response stays in the Redis cache, in milliseconds.
+  CACHE_TTL_MS: z.coerce.number().int().positive().default(60_000),
   // Optional: Express's `trust proxy` setting, needed behind a reverse proxy
   // or load balancer so the rate limiter sees client IPs instead of the
   // proxy's. Accepts what Express does: `true`, a hop count such as `1`, or a

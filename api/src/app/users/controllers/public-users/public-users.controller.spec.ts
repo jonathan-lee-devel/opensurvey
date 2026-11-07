@@ -1,3 +1,5 @@
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants.js';
 import { TestBed } from '@suites/unit';
 
 import { PublicUsersService } from '../../services/public-users/public-users.service.js';
@@ -13,5 +15,11 @@ describe('PublicUsersController', () => {
 
     await expect(unit.findOne('1')).resolves.toBe(user);
     expect(unitRef.get(PublicUsersService).findOne).toHaveBeenCalledWith('1');
+  });
+
+  it('caches its responses with CacheInterceptor', () => {
+    expect(
+      Reflect.getMetadata(INTERCEPTORS_METADATA, PublicUsersController),
+    ).toEqual([CacheInterceptor]);
   });
 });

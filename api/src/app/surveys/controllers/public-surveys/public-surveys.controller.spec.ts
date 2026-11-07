@@ -1,3 +1,5 @@
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants.js';
 import { TestBed } from '@suites/unit';
 
 import { PublicSurveysService } from '../../services/public-surveys/public-surveys.service.js';
@@ -15,5 +17,11 @@ describe('PublicSurveysController', () => {
     expect(unitRef.get(PublicSurveysService).findBySlug).toHaveBeenCalledWith(
       'feedback',
     );
+  });
+
+  it('caches its responses with CacheInterceptor', () => {
+    expect(
+      Reflect.getMetadata(INTERCEPTORS_METADATA, PublicSurveysController),
+    ).toEqual([CacheInterceptor]);
   });
 });

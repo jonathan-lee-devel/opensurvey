@@ -35,7 +35,7 @@ Each directory is an independent package with its own `package.json`, `yarn.lock
 | Layer    | Technology                                     |
 | -------- | ---------------------------------------------- |
 | Backend  | NestJS 12 on Node.js, Express adapter, ESM      |
-| Data     | PostgreSQL via Drizzle ORM, Redis for rate limiting |
+| Data     | PostgreSQL via Drizzle ORM, Redis for rate limiting and response caching |
 | Frontend | Angular 22, standalone components, signals, SCSS |
 | Language | TypeScript 6                                   |
 | Tests    | Vitest (both packages), Supertest for API e2e  |
@@ -70,7 +70,7 @@ cp .env.example .env
 yarn start:dev
 ```
 
-On startup the API connects to `DATABASE_URL` and applies any pending database migrations, so a fresh database is ready to use immediately. It also connects to `REDIS_URL`, where the rate limiter keeps its counters. The API listens on `http://localhost:3000` by default. Set `PORT` in `.env` to change it.
+On startup the API connects to `DATABASE_URL` and applies any pending database migrations, so a fresh database is ready to use immediately. It also connects to `REDIS_URL`, where the rate limiter keeps its counters and the public `GET` routes cache their responses. The API listens on `http://localhost:3000` by default. Set `PORT` in `.env` to change it.
 
 ### Run the web app
 
@@ -99,9 +99,10 @@ All configuration for the API is read from `api/.env`.
 | -------------------- | -------- | --------------------------------------------------------------------------- |
 | `PORT`               | No       | Port the API listens on. Defaults to `3000`.                                |
 | `DATABASE_URL`       | Yes      | PostgreSQL connection string. `.env.example` points at the compose database. |
-| `REDIS_URL`          | Yes      | Redis connection string for rate-limit counters. `.env.example` points at the compose Redis. |
+| `REDIS_URL`          | Yes      | Redis connection string for rate-limit counters and the response cache. `.env.example` points at the compose Redis. |
 | `THROTTLE_LIMIT`     | No       | Requests allowed per client IP per window on every route. Defaults to `100`. |
 | `THROTTLE_TTL_MS`    | No       | Length of the rate-limit window in milliseconds. Defaults to `60000`.       |
+| `CACHE_TTL_MS`       | No       | How long a `/public/...` response is served from Redis before the database is read again, in milliseconds. Defaults to `60000`. |
 | `TRUST_PROXY`        | No       | Express `trust proxy` value (`1`, `loopback`, a CIDR list). Set it behind a reverse proxy so limits apply per client, not per proxy. |
 | `OBSERVE_APP_KEY`    | No       | Key for [NestJS Observe](https://observe.nestjs.com) tracing and metrics.   |
 | `OBSERVE_APP_SECRET` | No       | Secret paired with `OBSERVE_APP_KEY`.                                       |

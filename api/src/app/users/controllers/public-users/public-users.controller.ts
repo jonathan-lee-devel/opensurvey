@@ -1,4 +1,5 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
 import { PublicUsersService } from '../../services/public-users/public-users.service.js';
@@ -6,6 +7,9 @@ import { publicUserSchema, userIdSchema } from './public-users.schema.js';
 
 @ApiTags('users')
 @Controller('public/users')
+// Serves repeat GETs from the Redis cache (CacheModule in app.module.ts) for
+// CACHE_TTL_MS; only successful responses are stored, never a 404.
+@UseInterceptors(CacheInterceptor)
 export class PublicUsersController {
   constructor(private readonly publicUsers: PublicUsersService) {}
 

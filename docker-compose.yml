@@ -37,7 +37,8 @@ services:
     ports:
       # Host port 6380 so this does not clash with a Redis already on 6379.
       - '6380:6379'
-    # Holds only rate-limit counters, which expire on their own, so no volume.
+    # Holds only rate-limit counters and cached public responses, which expire
+    # on their own, so no volume.
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s

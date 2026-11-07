@@ -5,8 +5,9 @@ import { RedisContainer } from '@testcontainers/redis';
  * Starts a throwaway PostgreSQL and Redis for the end-to-end tests. Vitest runs
  * this once in its main process before any worker starts, and workers inherit
  * `process.env`, so `DatabaseModule` connects to the PostgreSQL container and
- * applies the migrations to an empty database, and `ThrottlerModule` keeps its
- * rate-limit counters in the Redis container. The development services in the
+ * applies the migrations to an empty database, and `ThrottlerModule` and
+ * `CacheModule` keep their rate-limit counters and cached responses in the
+ * Redis container. The development services in the
  * repository's docker-compose.yml are never touched, whatever `.env` says.
  */
 export default async function setup(): Promise<() => Promise<void>> {

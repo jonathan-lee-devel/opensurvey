@@ -51,7 +51,7 @@ The database is PostgreSQL through [`@nestjs/drizzle`](https://docs.nestjs.com/d
 - `src/database/database.module.ts` connects using `DATABASE_URL` and runs Drizzle's `migrate()` on startup, so the app always boots against an up-to-date schema.
 - Configuration comes from [`@nestjs/config`](https://docs.nestjs.com/application/configuration.md): `ConfigModule.forRoot()` in `src/app.module.ts` is global, loads `.env` and validates it against the Zod schema in `src/config/env.schema.ts`, which also exports the typed `EnvService`. Declare a variable in that schema (and in `.env.example`) before reading it, then inject `ConfigService` and call `get('NAME', { infer: true })` (or `getOrThrow`) instead of reading `process.env`. The only direct reads are `drizzle.config.ts`, which drizzle-kit runs outside Nest, and `test/global-setup.ts`, which feeds the Testcontainers URL into the environment.
 - SQL migrations in `drizzle/` are generated: after a schema change run `yarn db:generate` and commit the result. Never edit `drizzle/` by hand, and never gitignore it.
-- Unit tests must not need a database. End-to-end tests get a throwaway PostgreSQL (and Redis, for the rate limiter) from Testcontainers via `test/global-setup.ts`; do not point them at the compose services or add a CI service container.
+- Unit tests must not need a database. End-to-end tests get a throwaway PostgreSQL (and Redis, for the rate limiter and the response cache) from Testcontainers via `test/global-setup.ts`; do not point them at the compose services or add a CI service container.
 - `docker compose --profile infrastructure up -d` at the repository root runs a development PostgreSQL on port 5433 and Redis on port 6380, which `.env.example` points at.
 
 ## Rate limiting: @nestjs/throttler
@@ -63,6 +63,18 @@ Every route is rate limited by [`@nestjs/throttler`](https://docs.nestjs.com/sec
 - Keys are per controller, handler and client IP, so routes do not share a budget. Tighten a route with `@Throttle({ default: { limit, ttl } })`, exempt it with `@SkipThrottle()`; both work on a controller class too. Do not hand-roll limits in handlers.
 - Over the limit the guard answers 429 with `Retry-After` and `X-RateLimit-Limit`, `X-RateLimit-Remaining` and `X-RateLimit-Reset` headers. `test/throttler.e2e-spec.ts` covers this end to end against the Testcontainers Redis.
 - Behind a reverse proxy set `TRUST_PROXY` (Express's `trust proxy` value, applied in `src/main.ts`), otherwise every client shares the proxy's address and its budget. In the compose `app` profile it is `1`: nginx in the `web` container is the only hop.
+
+## Caching: @nestjs/cache-manager
+
+The public read routes are cached in Redis by [`@nestjs/cache-manager`](https://docs.nestjs.com/data/caching.md): `CacheModule.registerAsync()` in `src/app.module.ts` is global and backed by one `@keyv/redis` store on `REDIS_URL`, and each `public-*` controller opts in with `@UseInterceptors(CacheInterceptor)` on the class.
+
+- `CacheInterceptor` caches `GET` responses only, keyed by request URL (path and query string), for `CACHE_TTL_MS` (60 seconds unless `.env` says otherwise; `ttl` is milliseconds here too). A handler that throws, such as a `NotFoundException`, is never stored, so a slug that later becomes published is served fresh. Every response carries `X-Cache: HIT` or `MISS`.
+- Guards run before interceptors, so a cache hit still counts against the rate limit.
+- Entries sit in the `cache` namespace (`cache::/public/polls/<slug>`), apart from the throttler's counters. Invalidate one from a service with `@Inject(CACHE_MANAGER) private readonly cache: Cache` and `await this.cache.del('/public/polls/<slug>')`, passing the URL without the namespace; `cache.clear()` empties only this namespace. The admin routes only create resources today, and a created slug cannot have a stale entry (its 404 was not cached), so nothing invalidates yet. Add it the day an admin route updates or deletes something public.
+- Admin routes and anything else must not be cached: leave `CacheInterceptor` off them, and do not register it as `APP_INTERCEPTOR`.
+- Keep the Keyv major versions aligned: `cache-manager` 7 pins Keyv 5, so `@keyv/redis` stays on 5.x. A 6.x adapter under a 5.x Keyv misreads TTLs and expires entries immediately.
+- Bodies round-trip through JSON, so a `Date` column comes back as a string on a hit, just as the client would see it either way. A Redis outage is logged and disables caching; the interceptor falls through to the handler.
+- `test/cache.e2e-spec.ts` covers hits, misses, TTL and the uncached 404 against the Testcontainers Redis.
 
 ## Docker
 
