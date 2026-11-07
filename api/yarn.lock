@@ -1149,6 +1149,62 @@
   resolved "https://registry.yarnpkg.com/@standard-schema/spec/-/spec-1.1.0.tgz#a79b55dbaf8604812f52d140b2c9ab41bc150bb8"
   integrity sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==
 
+"@suites/core.unit@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@suites/core.unit/-/core.unit-4.1.2.tgz#78b5e3d8c479e8afc3c70554e1cea5d6035a083c"
+  integrity sha512-1/AC1/wudDfp+EM5ocKrf7UGNI41SWDqu7deVWDTW85HZFf6nvuc1CVXZcnMYmCHC4GduZM7y0pMloJv3GhYRw==
+  dependencies:
+    "@suites/types.common" "^4.0.2"
+    "@suites/types.di" "^4.1.2"
+    "@suites/types.doubles" "^4.0.2"
+
+"@suites/di.nestjs@^4.0.3":
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/@suites/di.nestjs/-/di.nestjs-4.0.3.tgz#990e699886b0368992daaef063aca147f6de8c44"
+  integrity sha512-ria91/viZptew8TGv6hJEcO4BgKnglWkcNA4HKbZfN1ZnJVqeWPo1xh/6CDAVuYCu9vRvnb0rOSC3ZoVjkozoA==
+  dependencies:
+    "@suites/types.common" "^4.0.2"
+    "@suites/types.di" "^4.1.2"
+
+"@suites/doubles.vitest@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@suites/doubles.vitest/-/doubles.vitest-4.1.2.tgz#f875c1a2c9b6576876c8d2ae5a9c63ced8b302c1"
+  integrity sha512-DrM8q09s0LQpjwZGsmy47feyOdTmSkN6Ri8nCZtP0NvN+mSNqcKbqVtWQAIXOoFxFnLJv7eHWiobgmv4Q1BI2Q==
+  dependencies:
+    "@suites/core.unit" "^4.1.2"
+    "@suites/types.common" "^4.0.2"
+    "@suites/types.di" "^4.1.2"
+    "@suites/types.doubles" "^4.0.2"
+
+"@suites/types.common@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@suites/types.common/-/types.common-4.0.2.tgz#fb035f4cdc086e1a4acd071a380c79fdee4a18be"
+  integrity sha512-z4mF2AK0Daf/YCfranmJqiRGNze1vmVbJXuD5rDZnT8MdPbQ/9dDWRrcp6qchiS36BGA8+rcfYqvQKHrAOjSgg==
+
+"@suites/types.di@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@suites/types.di/-/types.di-4.1.2.tgz#80ce4310a2e5d9a567474202ddaaa35d6c4e1217"
+  integrity sha512-Gq7gAM0HPqJXTMjB2EClpqg/dpOWI6tTKNUFBMkqQBG+1UgpJkqxOpA6IhWp9o3VROaCRc5y35x6tcme/xLvYg==
+  dependencies:
+    "@suites/types.common" "^4.0.2"
+
+"@suites/types.doubles@^4.0.2":
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/@suites/types.doubles/-/types.doubles-4.0.2.tgz#d9ef2a5dbe19ca9cb9c6a0a04c15a754f7ce76bb"
+  integrity sha512-/fV95V6EZojcZoTXscuMbgbwIoieNXdGD6x3omTRwpaP+sjLSwpxrQjqTB1YepML5kEmZaor+ZeVOxwkpVDufQ==
+  dependencies:
+    "@suites/types.common" "^4.0.2"
+
+"@suites/unit@^4.1.2":
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/@suites/unit/-/unit-4.1.2.tgz#775418a7b7ad98a91fe1ac7ee244a5dba0688522"
+  integrity sha512-TLyiOXa4myRQXI0FyaX3/3c6D18ai3zepL6h3fQrEUjrL4s6S2Yn3VEjPVxC7OOPdPGMB+uqaFPqADtyr1onPQ==
+  dependencies:
+    "@suites/core.unit" "^4.1.2"
+    "@suites/types.common" "^4.0.2"
+    "@suites/types.di" "^4.1.2"
+    "@suites/types.doubles" "^4.0.2"
+
 "@testcontainers/postgresql@^12.2.1":
   version "12.2.1"
   resolved "https://registry.yarnpkg.com/@testcontainers/postgresql/-/postgresql-12.2.1.tgz#2e842fd3a5786e47aef3ea99e1774e27bb717a7a"

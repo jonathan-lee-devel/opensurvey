@@ -3,8 +3,11 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
-import { Test, TestingModule } from '@nestjs/testing';
+import { mock, stub } from '@suites/doubles.vitest';
+import type { Mocked, Stub } from '@suites/unit';
+import { TestBed } from '@suites/unit';
 
+import type { Database } from '../../../../database/database.types.js';
 import { CreateSurveyDto } from '../../controllers/admin-surveys/admin-surveys.schema.js';
 import { AdminSurveysService } from './admin-surveys.service.js';
 
@@ -27,22 +30,25 @@ const dto: CreateSurveyDto = {
 
 describe('AdminSurveysService', () => {
   let service: AdminSurveysService;
-  const returning = vi.fn();
-  const values = vi.fn(() => ({ returning }));
-  const insert = vi.fn(() => ({ values }));
-  const tx = { insert };
-  const transaction = vi.fn((run: (tx: unknown) => unknown) => run(tx));
+  let db: Mocked<Database>;
+  // Each tx.insert(...).values(...).returning() call pops the next result.
+  let values: Stub<unknown[]>;
+  let returning: Stub<unknown[]>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AdminSurveysService,
-        { provide: getDrizzleToken(), useValue: { transaction } },
-      ],
-    }).compile();
+    returning = stub();
+    values = stub().mockReturnValue({ returning });
+    const tx = mock<Database>();
+    tx.insert.mockReturnValue({ values } as never);
 
-    service = module.get<AdminSurveysService>(AdminSurveysService);
+    const { unit, unitRef } = await TestBed.solitary(AdminSurveysService)
+      .mock<Database>(getDrizzleToken())
+      .impl((fn) => ({
+        transaction: fn().mockImplementation((run) => run(tx)),
+      }))
+      .compile();
+    service = unit;
+    db = unitRef.get<Database>(getDrizzleToken());
   });
 
   it('inserts the survey then its questions, positioned by request order', async () => {
@@ -54,7 +60,7 @@ describe('AdminSurveysService', () => {
 
     const result = await service.create(dto);
 
-    expect(transaction).toHaveBeenCalledOnce();
+    expect(db.transaction).toHaveBeenCalledOnce();
     expect(values).toHaveBeenNthCalledWith(2, [
       {
         surveyId: 's1',

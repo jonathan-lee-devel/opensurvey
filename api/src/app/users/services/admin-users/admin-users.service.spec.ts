@@ -1,25 +1,27 @@
 import { ConflictException } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
-import { Test, TestingModule } from '@nestjs/testing';
+import { stub } from '@suites/doubles.vitest';
+import type { Stub } from '@suites/unit';
+import { TestBed } from '@suites/unit';
 
+import type { Database } from '../../../../database/database.types.js';
 import { AdminUsersService } from './admin-users.service.js';
 
 describe('AdminUsersService', () => {
   let service: AdminUsersService;
-  const returning = vi.fn();
-  const values = vi.fn(() => ({ returning }));
-  const insert = vi.fn(() => ({ values }));
+  // db.insert(...).values(...).returning() resolves to the inserted rows.
+  let values: Stub<unknown[]>;
+  let returning: Stub<unknown[]>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AdminUsersService,
-        { provide: getDrizzleToken(), useValue: { insert } },
-      ],
-    }).compile();
+    returning = stub();
+    values = stub().mockReturnValue({ returning });
 
-    service = module.get<AdminUsersService>(AdminUsersService);
+    const { unit } = await TestBed.solitary(AdminUsersService)
+      .mock<Database>(getDrizzleToken())
+      .impl((fn) => ({ insert: fn().mockReturnValue({ values }) }))
+      .compile();
+    service = unit;
   });
 
   it('inserts the user with a lowercased email and returns the row', async () => {

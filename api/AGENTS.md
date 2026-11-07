@@ -23,6 +23,15 @@ Request validation is Zod through `StandardSchemaValidationPipe`, registered glo
 
 Nest's packages are ESM only, and this project is ESM too: relative imports end in `.js`, `__dirname` doesn't exist (use `import.meta.dirname`), and tests run on Vitest, so mocks are `vi.fn()`, not `jest.fn()`.
 
+## Unit tests: Suites
+
+Unit specs (`src/**/*.spec.ts`) build the class under test with [Suites](https://suites.dev) (`@suites/unit` with the `@suites/di.nestjs` and `@suites/doubles.vitest` adapters), not `Test.createTestingModule`, which only the e2e tests in `test/` still use. `suites.d.ts` at the package root loads the adapters' type augmentations so `unitRef.get()` returns Vitest mocks.
+
+- `const { unit, unitRef } = await TestBed.solitary(MyClass).compile()` instantiates `MyClass` with every constructor dependency auto-mocked (deep proxies, every method a `vi.fn()`). Build a fresh test bed per test or in `beforeEach`; do not share one across tests.
+- Fix a dependency's behaviour while building: `.mock(MyService).impl((stub) => ({ find: stub().mockResolvedValue(x) }))`. Prefer this to calling `mockResolvedValue` on the mock returned by `unitRef.get()`, whose Suites type intersects the method's `Promise` and trips `no-floating-promises`.
+- The Drizzle database is a string token: `.mock<Database>(getDrizzleToken())` and `unitRef.get<Database>(getDrizzleToken())`. Relational queries work on the deep mock as-is (`db.query.polls.findFirst.mockResolvedValue(...)`); the fluent insert chain is faked with `stub()` and `mock<Database>()` from `@suites/doubles.vitest`, as in the `admin-*` service specs.
+- Assert on the mock with `expect(unitRef.get(MyService).find).toHaveBeenCalledWith(...)`; `.oxlintrc.json` turns `typescript/unbound-method` off for spec files for exactly this pattern.
+
 ## OpenAPI: @nestjs/swagger
 
 `src/swagger.ts` exports `setupSwagger(app)`, which `src/main.ts` calls before `listen()`: Swagger UI at http://localhost:3000/docs, the raw document at `/docs-json` and `/docs-yaml`. It is not part of `AppModule`, so an e2e test that needs it must call `setupSwagger(app)` before `app.init()` (`test/swagger.e2e-spec.ts`).

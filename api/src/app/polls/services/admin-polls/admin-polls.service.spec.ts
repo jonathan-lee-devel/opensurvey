@@ -3,8 +3,11 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { getDrizzleToken } from '@nestjs/drizzle';
-import { Test, TestingModule } from '@nestjs/testing';
+import { mock, stub } from '@suites/doubles.vitest';
+import type { Mocked, Stub } from '@suites/unit';
+import { TestBed } from '@suites/unit';
 
+import type { Database } from '../../../../database/database.types.js';
 import { CreatePollDto } from '../../controllers/admin-polls/admin-polls.schema.js';
 import { AdminPollsService } from './admin-polls.service.js';
 
@@ -19,23 +22,25 @@ const dto: CreatePollDto = {
 
 describe('AdminPollsService', () => {
   let service: AdminPollsService;
-  // Each insert(...).values(...).returning() call pops the next result.
-  const returning = vi.fn();
-  const values = vi.fn(() => ({ returning }));
-  const insert = vi.fn(() => ({ values }));
-  const tx = { insert };
-  const transaction = vi.fn((run: (tx: unknown) => unknown) => run(tx));
+  let db: Mocked<Database>;
+  // Each tx.insert(...).values(...).returning() call pops the next result.
+  let values: Stub<unknown[]>;
+  let returning: Stub<unknown[]>;
 
   beforeEach(async () => {
-    vi.clearAllMocks();
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AdminPollsService,
-        { provide: getDrizzleToken(), useValue: { transaction } },
-      ],
-    }).compile();
+    returning = stub();
+    values = stub().mockReturnValue({ returning });
+    const tx = mock<Database>();
+    tx.insert.mockReturnValue({ values } as never);
 
-    service = module.get<AdminPollsService>(AdminPollsService);
+    const { unit, unitRef } = await TestBed.solitary(AdminPollsService)
+      .mock<Database>(getDrizzleToken())
+      .impl((fn) => ({
+        transaction: fn().mockImplementation((run) => run(tx)),
+      }))
+      .compile();
+    service = unit;
+    db = unitRef.get<Database>(getDrizzleToken());
   });
 
   it('inserts the poll then its options, positioned by request order', async () => {
@@ -47,7 +52,7 @@ describe('AdminPollsService', () => {
 
     const result = await service.create(dto);
 
-    expect(transaction).toHaveBeenCalledOnce();
+    expect(db.transaction).toHaveBeenCalledOnce();
     expect(values).toHaveBeenNthCalledWith(1, {
       ownerId: dto.ownerId,
       question: 'Lunch?',
