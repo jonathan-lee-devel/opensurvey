@@ -18,9 +18,10 @@ step() {
   fi
 }
 
-# The api e2e tests start a Postgres container via Testcontainers.
+# The api e2e tests start Postgres and Redis containers via Testcontainers,
+# and the final step builds the Docker images.
 if ! docker info >/dev/null 2>&1; then
-  echo "✘ Docker is not running; api e2e tests need it (Testcontainers)." >&2
+  echo "✘ Docker is not running; api e2e tests (Testcontainers) and the image builds need it." >&2
   exit 1
 fi
 
@@ -35,6 +36,10 @@ step "api: build"     bash -c 'cd api && yarn build'
 step "web: install"   bash -c 'cd web && yarn install --frozen-lockfile --silent'
 step "web: unit"      bash -c 'cd web && CI=true yarn test'
 step "web: build"     bash -c 'cd web && CI=true yarn build'
+
+# --- Docker images --- the same builds CI's `docker` job runs, via the compose
+# `app` profile so the Dockerfiles are exercised exactly as they are deployed.
+step "docker: build"  docker compose --profile app build --quiet
 
 echo
 echo "ALL CHECKS PASSED"

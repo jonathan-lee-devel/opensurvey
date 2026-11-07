@@ -20,9 +20,9 @@ jobs:
       run:
         working-directory: api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
           cache: yarn
@@ -37,6 +37,7 @@ jobs:
       - name: Unit tests
         run: yarn test
 
+      # Starts PostgreSQL and Redis with Testcontainers on the runner's Docker.
       - name: End-to-end tests
         run: yarn test:e2e
 
@@ -52,9 +53,9 @@ jobs:
     env:
       CI: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
           cache: yarn
@@ -68,3 +69,27 @@ jobs:
 
       - name: Build
         run: yarn build
+
+  docker:
+    name: Docker image (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, web]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Builds the same images docker-compose.yml's `app` profile uses, without
+      # pushing anywhere; the point is to catch a Dockerfile that no longer
+      # builds. Layers are cached in GitHub Actions cache, one scope per image.
+      - name: Build ${{ matrix.image }} image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./${{ matrix.image }}
+          push: false
+          tags: opensurvey-${{ matrix.image }}:ci
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,scope=${{ matrix.image }},mode=max

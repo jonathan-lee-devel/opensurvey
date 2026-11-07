@@ -156,7 +156,7 @@ OpenSurvey is in early development. The API boots against PostgreSQL and Redis w
 
 ## Contributing
 
-Contributions are welcome. Every push to `main` and every pull request runs the [CI workflow](.github/workflows/ci.yml), which lints, tests, and builds both packages. Before opening a pull request:
+Contributions are welcome. Every push to `main` and every pull request runs the [CI workflow](.github/workflows/ci.yml), which lints, tests, and builds both packages and builds their Docker images. Before opening a pull request:
 
 1. Run the tests in the package you touched (`yarn test` in `api/` or `web/`).
 2. Run `yarn lint` in `api/` if you changed backend code.
