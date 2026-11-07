@@ -24,6 +24,19 @@ describe('AdminSurveysController', () => {
     expect(unitRef.get(AdminSurveysService).create).toHaveBeenCalledWith(dto);
   });
 
+  it('passes the id to the service and returns the survey', async () => {
+    const survey = { id: 's1', title: 'Feedback', questions: [] };
+    const { unit, unitRef } = await TestBed.solitary(AdminSurveysController)
+      .mock(AdminSurveysService)
+      .impl((stub) => ({ findById: stub().mockResolvedValue(survey) }))
+      .compile();
+
+    await expect(unit.findById('s1')).resolves.toBe(survey);
+    expect(unitRef.get(AdminSurveysService).findById).toHaveBeenCalledWith(
+      's1',
+    );
+  });
+
   it('passes the id and paging query to the service', async () => {
     const page = { items: [], total: 0 };
     const { unit, unitRef } = await TestBed.solitary(AdminSurveysController)

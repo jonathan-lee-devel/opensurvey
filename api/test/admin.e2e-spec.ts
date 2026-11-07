@@ -277,6 +277,64 @@ describe('Admin controllers (e2e)', () => {
     });
   });
 
+  describe('GET /admin/surveys/:id', () => {
+    it('returns the survey with its owner and ordered questions', async () => {
+      const res = await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}`)
+        .set('Authorization', auth)
+        .expect(200);
+      expect(res.body).toMatchObject({
+        id: surveyId,
+        ownerId,
+        title: 'Feedback',
+        description: 'Tell us more',
+        slug: 'admin-feedback',
+        status: 'published',
+      });
+      expect(res.body.questions.map((q: { id: string }) => q.id)).toEqual(
+        questionIds,
+      );
+      expect(res.body.questions[1]).toMatchObject({
+        type: 'multiple_choice',
+        prompt: 'Toppings?',
+        position: 1,
+        options: ['Cheese', 'Olives'],
+      });
+    });
+
+    it('returns a draft survey too', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/admin/surveys')
+        .set('Authorization', auth)
+        .send({
+          ownerId,
+          title: 'Draft',
+          slug: 'admin-draft',
+          questions: [{ type: 'rating', prompt: 'Score?' }],
+        })
+        .expect(201);
+      const res = await request(app.getHttpServer())
+        .get(`/admin/surveys/${created.body.id}`)
+        .set('Authorization', auth)
+        .expect(200);
+      expect(res.body.status).toBe('draft');
+    });
+
+    it('answers 404 for an unknown id, 400 for a malformed one and 401 without a token', async () => {
+      await request(app.getHttpServer())
+        .get(`/admin/surveys/${missingOwner}`)
+        .set('Authorization', auth)
+        .expect(404);
+      await request(app.getHttpServer())
+        .get('/admin/surveys/not-a-uuid')
+        .set('Authorization', auth)
+        .expect(400);
+      await request(app.getHttpServer())
+        .get(`/admin/surveys/${surveyId}`)
+        .expect(401);
+    });
+  });
+
   describe('GET /admin/surveys/:id/submissions', () => {
     const submit = (answers: unknown[]) =>
       request(app.getHttpServer())

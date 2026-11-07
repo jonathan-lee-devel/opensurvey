@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { count, desc, eq } from 'drizzle-orm';
+import { asc, count, desc, eq } from 'drizzle-orm';
 
 import type { Database } from '../../../../database/database.types.js';
 import { InjectDrizzle } from '../../../../database/database.types.js';
@@ -80,6 +80,33 @@ export class AdminSurveysService {
       }
       throw error;
     }
+  }
+
+  /**
+   * The survey with this id and its questions in display order, whatever its
+   * status: administrators see drafts and closed surveys too.
+   *
+   * @throws NotFoundException when no survey has the id.
+   */
+  async findById(id: string) {
+    const survey = await this.db.query.surveys.findFirst({
+      where: eq(surveys.id, id),
+      with: {
+        questions: {
+          columns: {
+            id: true,
+            type: true,
+            prompt: true,
+            required: true,
+            position: true,
+            options: true,
+          },
+          orderBy: asc(surveyQuestions.position),
+        },
+      },
+    });
+    if (!survey) throw new NotFoundException(`No survey "${id}"`);
+    return survey;
   }
 
   /**

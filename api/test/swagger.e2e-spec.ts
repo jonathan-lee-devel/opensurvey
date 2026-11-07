@@ -43,6 +43,7 @@ describe('Swagger (e2e)', () => {
     expect(Object.keys(body.paths).sort()).toEqual([
       '/admin/polls',
       '/admin/surveys',
+      '/admin/surveys/{id}',
       '/admin/surveys/{id}/submissions',
       '/admin/users',
       '/public/polls/{slug}',

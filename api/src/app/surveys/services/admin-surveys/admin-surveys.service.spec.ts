@@ -99,6 +99,31 @@ describe('AdminSurveysService', () => {
     );
   });
 
+  describe('findById', () => {
+    const surveyId = '22222222-2222-4222-8222-222222222222';
+
+    it('returns the survey the database finds, questions included', async () => {
+      const survey = { id: surveyId, title: 'Feedback', questions: [] };
+      db.query.surveys.findFirst.mockResolvedValue(survey as never);
+
+      await expect(service.findById(surveyId)).resolves.toBe(survey);
+      expect(db.query.surveys.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          with: {
+            questions: expect.objectContaining({ orderBy: expect.anything() }),
+          },
+        }),
+      );
+    });
+
+    it('throws NotFoundException when no survey has the id', async () => {
+      db.query.surveys.findFirst.mockResolvedValue(undefined);
+      await expect(service.findById(surveyId)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+    });
+  });
+
   describe('listSubmissions', () => {
     const surveyId = '22222222-2222-4222-8222-222222222222';
 

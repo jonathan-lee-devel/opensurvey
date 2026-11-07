@@ -47,6 +47,19 @@ export class AdminSurveysController {
   }
 
   /**
+   * Get a survey by its id
+   *
+   * @remarks Returns the survey with its owner and its questions in display
+   * order. Drafts and closed surveys are returned too.
+   */
+  @Get(':id')
+  @ApiOkResponse({ standardSchema: adminSurveySchema })
+  @ApiNotFoundResponse({ description: 'No survey has this id.' })
+  findById(@Param('id', { schema: surveyIdSchema }) id: string) {
+    return this.adminSurveys.findById(id);
+  }
+
+  /**
    * List a survey's submissions
    *
    * @remarks Newest first, each with the request metadata it was recorded
