@@ -2,6 +2,7 @@ import { CacheInterceptor } from '@nestjs/cache-manager';
 import { Controller, Get, Param, UseInterceptors } from '@nestjs/common';
 import { ApiNotFoundResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 
+import { IsPublic } from '../../../../auth/decorators/is-public.decorator.js';
 import { PublicSurveysService } from '../../services/public-surveys/public-surveys.service.js';
 import {
   publicSurveySchema,
@@ -10,8 +11,7 @@ import {
 
 @ApiTags('surveys')
 @Controller('public/surveys')
-// Serves repeat GETs from the Redis cache (CacheModule in app.module.ts) for
-// CACHE_TTL_MS; only successful responses are stored, never a 404.
+@IsPublic()
 @UseInterceptors(CacheInterceptor)
 export class PublicSurveysController {
   constructor(private readonly publicSurveys: PublicSurveysService) {}

@@ -25,7 +25,8 @@ The stack is deliberately small: a [NestJS](https://nestjs.com) API and an [Angu
 opensurvey/
 ├── api/                NestJS 12 backend (ESM, Vitest, oxlint)
 ├── web/                Angular 22 frontend (standalone components, signals, Vitest)
-└── docker-compose.yml  PostgreSQL + Redis for development, or the whole stack
+├── keycloak/           Realm the development Keycloak imports (users, roles, client)
+└── docker-compose.yml  PostgreSQL + Redis + Keycloak for development, or the whole stack
 ```
 
 Each directory is an independent package with its own `package.json`, `yarn.lock`, and `node_modules`. There is no root workspace yet.
@@ -36,6 +37,7 @@ Each directory is an independent package with its own `package.json`, `yarn.lock
 | -------- | ---------------------------------------------- |
 | Backend  | NestJS 12 on Node.js, Express adapter, ESM      |
 | Data     | PostgreSQL via Drizzle ORM, Redis for rate limiting and response caching |
+| Auth     | JWT Bearer tokens from any OIDC provider, verified against its JWKS with jose |
 | Frontend | Angular 22, standalone components, signals, SCSS |
 | Language | TypeScript 6                                   |
 | Tests    | Vitest (both packages), Supertest for API e2e  |
@@ -45,7 +47,7 @@ Each directory is an independent package with its own `package.json`, `yarn.lock
 
 - **Node.js 26** (the version CI runs on; 22 or newer should also work)
 - **Yarn 1.22 (classic).** Both packages pin `yarn@1.22.22` and ship a v1 lockfile.
-- **Docker.** The API needs PostgreSQL and Redis. The `infrastructure` profile in `docker-compose.yml` runs both for development, and the end-to-end tests start their own throwaway instances with [Testcontainers](https://testcontainers.com).
+- **Docker.** The API needs PostgreSQL, Redis and an OpenID Connect identity provider. The `infrastructure` profile in `docker-compose.yml` runs all three for development (the identity provider is [Keycloak](https://www.keycloak.org)), and the end-to-end tests start their own throwaway instances with [Testcontainers](https://testcontainers.com) and a local key server.
 
 ## Getting started
 
@@ -61,7 +63,7 @@ cd opensurvey
 
 ### Run the API
 
-The API reads environment variables from `api/.env`. Start the development PostgreSQL and Redis from the repository root, copy the example configuration, then run the API.
+The API reads environment variables from `api/.env`. Start the development PostgreSQL, Redis and Keycloak from the repository root, copy the example configuration, then run the API.
 
 ```bash
 docker compose --profile infrastructure up -d
@@ -70,7 +72,60 @@ cp .env.example .env
 yarn start:dev
 ```
 
-On startup the API connects to `DATABASE_URL` and applies any pending database migrations, so a fresh database is ready to use immediately. It also connects to `REDIS_URL`, where the rate limiter keeps its counters and the public `GET` routes cache their responses. The API listens on `http://localhost:3000` by default. Set `PORT` in `.env` to change it.
+On startup the API connects to `DATABASE_URL` and applies any pending database migrations, so a fresh database is ready to use immediately. It also connects to `REDIS_URL`, where the rate limiter keeps its counters and the public `GET` routes cache their responses. Every route outside `/public/...` needs a JWT Bearer token from the identity provider named by `AUTH_JWKS_URL` and `AUTH_ISSUER`; the API issues no tokens itself. `.env.example` points at the development Keycloak, so tokens from it work out of the box; see [Local authentication](#local-authentication). The API listens on `http://localhost:3000` by default. Set `PORT` in `.env` to change it.
+
+### Local authentication
+
+Every route outside `/public/...` needs an `Authorization: Bearer <JWT>` header. The API never issues tokens; it verifies tokens from an OpenID Connect identity provider against that provider's published keys. For development the provider is the `keycloak` service in `docker-compose.yml`, which the `infrastructure` profile starts next to PostgreSQL and Redis.
+
+**What runs.** Keycloak 26 in development mode (embedded database, plain http) on `http://localhost:8180`. On every start it imports [`keycloak/opensurvey-realm.json`](keycloak/opensurvey-realm.json), which defines the `opensurvey` realm:
+
+| What                  | Value                                                                                 |
+| --------------------- | ------------------------------------------------------------------------------------- |
+| Admin console         | `http://localhost:8180`, user `admin`, password `admin`                                |
+| Client                | `opensurvey-web`, public, PKCE for the web app, password grant enabled for development |
+| Role                  | `azg12345_SurveyAdmin`, the claim the API's `@HasClaim()` routes look for             |
+| User with the role    | `admin@opensurvey.local`, password `admin`                                            |
+| User without the role | `user@opensurvey.local`, password `user`                                              |
+
+Access tokens carry `http://localhost:8180/realms/opensurvey` as `iss`, `opensurvey-api` in `aud`, and the user's realm roles in a flat `roles` claim. That is exactly what `api/.env.example` tells the API to expect, so nothing needs configuring. Tokens last an hour.
+
+**Starting it.** `docker compose --profile infrastructure up -d` starts Keycloak with the other services. The first start pulls the image and takes 20 to 40 seconds to become ready; `docker compose --profile infrastructure up -d --wait` returns only once its health check passes. Check it yourself with `docker compose ps` (the `keycloak` service should read `healthy`) or by opening `http://localhost:8180/realms/opensurvey`, which returns the realm's metadata as JSON. The API does not need Keycloak at boot: it fetches the keys on the first protected request, so starting the API first is fine.
+
+**Getting a token.** From a terminal, with [`jq`](https://jqlang.github.io/jq/) installed:
+
+```bash
+TOKEN=$(curl -s http://localhost:8180/realms/opensurvey/protocol/openid-connect/token \
+  -d client_id=opensurvey-web -d grant_type=password \
+  -d username=admin@opensurvey.local -d password=admin | jq -r .access_token)
+
+curl http://localhost:3000/admin/users -H "Authorization: Bearer $TOKEN" \
+  -H 'content-type: application/json' -d '{"email":"ada@example.com"}'
+```
+
+Use `user@opensurvey.local` / `user` for a signed-in caller without the admin role, which is how to see a `@HasClaim()` route answer 403. In Swagger UI (`http://localhost:3000/docs`) paste the token into **Authorize** and every admin request carries it. To inspect a token's claims, paste it into [jwt.io](https://jwt.io).
+
+**Changing the setup.** The realm file is the only source of truth. There is no volume, so anything clicked into the admin console is gone at the next start, and that is deliberate: it keeps every developer's identity provider identical and makes the setup reviewable in a pull request. To add a user, role or client, edit `keycloak/opensurvey-realm.json` and recreate the container:
+
+```bash
+docker compose --profile infrastructure up -d --force-recreate keycloak
+```
+
+If you prefer to click first, make the change in the admin console, then in **Realm settings** open the **Action** menu (top right) and choose **Partial export** with clients and roles included. Copy the relevant parts of the download into the realm file: realm roles belong under `roles.realm`, clients under `clients`, and token claims come from the `protocolMappers` on the `opensurvey-web` client. A partial export never contains users, so write those under `users` by hand, following the two already there. Do not paste the whole export in: it is large and carries generated ids. (`kc.sh export` does not work against the running container, because development mode's embedded database is locked while Keycloak runs.)
+
+**Using another identity provider.** Any OIDC provider works (Microsoft Entra ID, Auth0, Keycloak elsewhere, Amazon Cognito, Okta). Point `AUTH_JWKS_URL` at its JSON Web Key Set, set `AUTH_ISSUER` to the `iss` it writes into access tokens, and either set `AUTH_AUDIENCE` to the audience it issues for this API or leave it unset to skip that check. Tokens must be signed with an asymmetric algorithm (RS256, ES256 and friends; HMAC is refused) and carry `sub` and `exp`. For `@HasClaim('azg12345_SurveyAdmin')` to pass, the token needs that value as a key (`"azg12345_SurveyAdmin": true`) or as an entry of a `roles`, `groups`, `permissions` or space-separated `scope` claim. Most providers can map an app role or group into one of those.
+
+**If something fails.** Every 401 from the API says why in its body and in the `WWW-Authenticate` header:
+
+- `Missing Bearer token`: no `Authorization: Bearer` header reached the API. Check the header name and that nothing between the client and the API strips it.
+- `Token claim "iss" is check_failed`: the token was issued for another issuer. With the compose Keycloak the token must come from `http://localhost:8180`, not `http://127.0.0.1:8180` or `http://keycloak:8080`; `KC_HOSTNAME` in `docker-compose.yml` pins the issuer to the first, and `AUTH_ISSUER` in `api/.env` must match it character for character, including no trailing slash.
+- `Token claim "aud" is check_failed`: the token lacks `opensurvey-api` in `aud`. Tokens for the compose Keycloak get it from the audience mapper on the `opensurvey-web` client, so a token obtained through another client will not have it.
+- `Token was not signed by a known key`: the API fetched the JWKS at `AUTH_JWKS_URL` and found no key with the token's `kid`. Usually `AUTH_JWKS_URL` points at a different realm or provider than the token came from, or Keycloak was recreated (which generates new keys) after the token was issued. Fetch a fresh token.
+- `Token has expired`: tokens from the compose Keycloak last an hour. Fetch a new one.
+- The API fails to start with a message about `AUTH_JWKS_URL` or `AUTH_ISSUER`: both are required. If your `api/.env` predates them, copy the `AUTH_*` lines from `api/.env.example`.
+- Port `8180` is taken: change the host side of the `keycloak` service's `ports` mapping and `KC_HOSTNAME` together, then update `AUTH_JWKS_URL` and `AUTH_ISSUER` in `api/.env` to match.
+
+The `app` profile runs the same Keycloak and configures the API container to use it, fetching the keys over the compose network while keeping the host-facing issuer. The end-to-end tests do not use it: `yarn test:e2e` starts its own throwaway key server and signs its own tokens.
 
 ### Run the web app
 
@@ -83,7 +138,7 @@ The Angular dev server runs at `http://localhost:4200` and reloads when files ch
 
 ### Run the whole stack with Docker
 
-The `app` profile builds `api/Dockerfile` and `web/Dockerfile` (both on Node 26) and starts them with PostgreSQL and Redis.
+The `app` profile builds `api/Dockerfile` and `web/Dockerfile` (both on Node 26) and starts them with PostgreSQL, Redis and Keycloak.
 
 ```bash
 docker compose --profile app up -d --build
@@ -103,6 +158,9 @@ All configuration for the API is read from `api/.env`.
 | `THROTTLE_LIMIT`     | No       | Requests allowed per client IP per window on every route. Defaults to `100`. |
 | `THROTTLE_TTL_MS`    | No       | Length of the rate-limit window in milliseconds. Defaults to `60000`.       |
 | `CACHE_TTL_MS`       | No       | How long a `/public/...` response is served from Redis before the database is read again, in milliseconds. Defaults to `60000`. |
+| `AUTH_JWKS_URL`      | Yes      | URL of your identity provider's JSON Web Key Set, used to verify the JWT Bearer tokens every non-public route requires. `.env.example` points at the compose Keycloak. |
+| `AUTH_ISSUER`        | Yes      | The `iss` claim those tokens carry. `.env.example` points at the compose Keycloak's `opensurvey` realm. |
+| `AUTH_AUDIENCE`      | No       | The `aud` claim those tokens must contain. Unset means the audience is not checked. The compose Keycloak issues `opensurvey-api`. |
 | `TRUST_PROXY`        | No       | Express `trust proxy` value (`1`, `loopback`, a CIDR list). Set it behind a reverse proxy so limits apply per client, not per proxy. |
 | `OBSERVE_APP_KEY`    | No       | Key for [NestJS Observe](https://observe.nestjs.com) tracing and metrics.   |
 | `OBSERVE_APP_SECRET` | No       | Secret paired with `OBSERVE_APP_KEY`.                                       |

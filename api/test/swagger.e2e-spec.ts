@@ -72,7 +72,28 @@ describe('Swagger (e2e)', () => {
       type: 'array',
       minItems: 2,
     });
-    expect(Object.keys(post.responses).sort()).toEqual(['201', '409', '422']);
+    expect(Object.keys(post.responses).sort()).toEqual([
+      '201',
+      '401',
+      '409',
+      '422',
+    ]);
+  });
+
+  it('documents the Bearer scheme on the admin routes only', async () => {
+    const { body } = await request(app.getHttpServer()).get(
+      `/${DOCS_PATH}-json`,
+    );
+    expect(body.components.securitySchemes.bearer).toMatchObject({
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+    });
+    expect(body.paths['/admin/polls'].post.security).toEqual([{ bearer: [] }]);
+    expect(body.paths['/public/polls/{slug}'].get.security).toBeUndefined();
+    expect(
+      body.paths['/public/polls/{slug}'].get.responses['401'],
+    ).toBeUndefined();
   });
 
   afterAll(async () => {

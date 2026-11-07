@@ -36,6 +36,21 @@ export const envSchema = z.object({
   // proxy's. Accepts what Express does: `true`, a hop count such as `1`, or a
   // comma-separated list of addresses, ranges or names such as `loopback`.
   TRUST_PROXY: z.string().trim().min(1).optional(),
+  // Authentication (AuthModule in src/auth/). Every route needs a JWT Bearer
+  // token unless marked @IsPublic(). Tokens are verified against the keys the
+  // issuer publishes at AUTH_JWKS_URL (https, or http on localhost for a
+  // development issuer), and their `iss` claim must equal AUTH_ISSUER.
+  AUTH_JWKS_URL: z.url({
+    protocol: /^https?$/,
+    error:
+      "must be the https:// URL of the identity provider's JSON Web Key Set, such as https://login.example.com/.well-known/jwks.json.",
+  }),
+  AUTH_ISSUER: z.string().trim().min(1, {
+    error: 'must be the `iss` claim the identity provider puts in its tokens.',
+  }),
+  // Optional: when set, the token's `aud` claim must contain it. Leave it unset
+  // only for issuers that do not put an audience in their access tokens.
+  AUTH_AUDIENCE: z.string().trim().min(1).optional(),
   // Optional: without a key pair Observe warns at startup and sends nothing.
   OBSERVE_APP_KEY: z.string().optional(),
   OBSERVE_APP_SECRET: z.string().optional(),

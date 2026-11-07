@@ -1,8 +1,10 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
 import { AdminUsersService } from '../../services/admin-users/admin-users.service.js';
@@ -11,6 +13,9 @@ import { adminUserSchema, createUserSchema } from './admin-users.schema.js';
 
 @ApiTags('users')
 @Controller('admin/users')
+// Needs a Bearer token (AuthGuard, the default); documented for Swagger UI.
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token.' })
 export class AdminUsersController {
   constructor(private readonly adminUsers: AdminUsersService) {}
 

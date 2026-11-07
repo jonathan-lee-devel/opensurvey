@@ -11,6 +11,7 @@ import {
 } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 
+import { IsPublic } from '../../../../auth/decorators/is-public.decorator.js';
 import { ClientMetadata } from '../../../../common/client-metadata.decorator.js';
 import { PublicSurveySubmissionsService } from '../../services/public-survey-submissions/public-survey-submissions.service.js';
 import { surveySlugSchema } from '../public-surveys/public-surveys.schema.js';
@@ -22,8 +23,7 @@ import {
 
 @ApiTags('surveys')
 @Controller('public/surveys/:slug/submissions')
-// A public write: no CacheInterceptor here, and a tighter rate limit than the
-// default, per client IP.
+@IsPublic()
 @Throttle({ default: { limit: 20, ttl: 60_000 } })
 export class PublicSurveySubmissionsController {
   constructor(private readonly submissions: PublicSurveySubmissionsService) {}

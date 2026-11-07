@@ -1,8 +1,10 @@
 import { Body, Controller, Post } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
@@ -12,6 +14,9 @@ import { adminPollSchema, createPollSchema } from './admin-polls.schema.js';
 
 @ApiTags('polls')
 @Controller('admin/polls')
+// Needs a Bearer token (AuthGuard, the default); documented for Swagger UI.
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token.' })
 export class AdminPollsController {
   constructor(private readonly adminPolls: AdminPollsService) {}
 

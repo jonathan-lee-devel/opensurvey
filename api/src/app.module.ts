@@ -12,6 +12,7 @@ import type { Request } from 'express';
 import { PollsModule } from './app/polls/polls.module.js';
 import { SurveysModule } from './app/surveys/surveys.module.js';
 import { UsersModule } from './app/users/users.module.js';
+import { AuthModule } from './auth/auth.module.js';
 import { envSchema, EnvService } from './config/env.schema.js';
 import { DatabaseModule } from './database/database.module.js';
 import { RedisIdempotencyStore } from './idempotency/redis-idempotency.store.js';
@@ -101,6 +102,13 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     IdempotencyModule.forRoot({
       scope: (req: Request) => req.ip,
     }),
+    // Authentication. Registers two global guards after the ThrottlerGuard
+    // below (the root module's providers come first, so an unauthenticated
+    // flood is rate limited before any token is checked): AuthGuard requires a
+    // JWT Bearer token on every route but the @IsPublic() ones, verifying it
+    // against the key set at AUTH_JWKS_URL, and ClaimsGuard enforces
+    // @HasClaim() on the routes that carry it.
+    AuthModule,
     DatabaseModule,
     SurveysModule,
     PollsModule,

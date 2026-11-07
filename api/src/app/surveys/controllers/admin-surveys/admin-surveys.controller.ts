@@ -1,10 +1,12 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import {
+  ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
   ApiUnprocessableEntityResponse,
 } from '@nestjs/swagger';
 
@@ -23,6 +25,9 @@ import {
 
 @ApiTags('surveys')
 @Controller('admin/surveys')
+// Needs a Bearer token (AuthGuard, the default); documented for Swagger UI.
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Missing or invalid Bearer token.' })
 export class AdminSurveysController {
   constructor(private readonly adminSurveys: AdminSurveysService) {}
 

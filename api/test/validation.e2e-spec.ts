@@ -11,6 +11,7 @@ import request from 'supertest';
 import { z } from 'zod';
 
 import { AppModule } from './../src/app.module.js';
+import { IsPublic } from './../src/auth/decorators/is-public.decorator.js';
 
 const createItemSchema = z.object({
   name: z.string().trim().min(1),
@@ -23,6 +24,8 @@ type CreateItemDto = z.infer<typeof createItemSchema>;
  * application registers it (`APP_PIPE` in AppModule) without depending on any
  * feature module's routes.
  */
+// Public, so no token is needed: the guard under test is the only one in play.
+@IsPublic()
 @Controller('validation-test')
 class ValidationTestController {
   @Post()

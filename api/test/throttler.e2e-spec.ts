@@ -6,6 +6,7 @@ import { Redis } from 'ioredis';
 import request from 'supertest';
 
 import { AppModule } from './../src/app.module.js';
+import { IsPublic } from './../src/auth/decorators/is-public.decorator.js';
 import { EnvService } from './../src/config/env.schema.js';
 
 /**
@@ -14,6 +15,8 @@ import { EnvService } from './../src/config/env.schema.js';
  * feature module's routes. Each test uses its own route: the guard keys its
  * counters by controller, handler and client IP, so routes do not share them.
  */
+// Public, so no token is needed: the guard under test is the only one in play.
+@IsPublic()
 @Controller('throttler-test')
 class ThrottlerTestController {
   @Get('defaults')

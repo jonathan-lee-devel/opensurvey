@@ -1,0 +1,98 @@
+{
+  "realm": "opensurvey",
+  "enabled": true,
+  "displayName": "OpenSurvey (development)",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "accessTokenLifespan": 3600,
+  "roles": {
+    "realm": [
+      {
+        "name": "azg12345_SurveyAdmin",
+        "description": "May use the /admin routes guarded with @HasClaim('azg12345_SurveyAdmin')."
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "opensurvey-web",
+      "name": "OpenSurvey web app",
+      "description": "Public client for the Angular app and for developers fetching a token with curl. Its mappers shape the access token the OpenSurvey API verifies: `opensurvey-api` in `aud`, and the caller's realm roles as a flat `roles` claim.",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:4200/*", "http://localhost:8080/*"],
+      "webOrigins": ["http://localhost:4200", "http://localhost:8080"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*##http://localhost:8080/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "opensurvey-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "opensurvey-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm roles as roles claim",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin@opensurvey.local",
+      "email": "admin@opensurvey.local",
+      "emailVerified": true,
+      "firstName": "Ada",
+      "lastName": "Admin",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["azg12345_SurveyAdmin", "default-roles-opensurvey"]
+    },
+    {
+      "username": "user@opensurvey.local",
+      "email": "user@opensurvey.local",
+      "emailVerified": true,
+      "firstName": "Uma",
+      "lastName": "User",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["default-roles-opensurvey"]
+    }
+  ]
+}

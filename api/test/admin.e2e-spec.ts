@@ -8,6 +8,7 @@ import request from 'supertest';
 import { AppModule } from './../src/app.module.js';
 import { Database } from './../src/database/database.types.js';
 import { users } from './../src/database/schema/index.js';
+import { bearer } from './auth.js';
 
 const missingOwner = '00000000-0000-4000-8000-000000000000';
 
@@ -17,8 +18,11 @@ describe('Admin controllers (e2e)', () => {
   let ownerId: string;
   let surveyId: string;
   let questionIds: string[];
+  // The admin routes need a Bearer token (AuthGuard); the public ones do not.
+  let auth: string;
 
   beforeAll(async () => {
+    auth = await bearer({ sub: 'admin-e2e' });
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -37,6 +41,7 @@ describe('Admin controllers (e2e)', () => {
     it('creates a user with a lowercased email', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
+        .set('Authorization', auth)
         .send({ email: 'Admin-E2E@Example.com', displayName: 'Ada' })
         .expect(201);
       expect(res.body).toMatchObject({
@@ -50,6 +55,7 @@ describe('Admin controllers (e2e)', () => {
     it('answers 409 for a duplicate email, whatever its case', async () => {
       await request(app.getHttpServer())
         .post('/admin/users')
+        .set('Authorization', auth)
         .send({ email: 'admin-e2e@EXAMPLE.com' })
         .expect(409);
     });
@@ -57,6 +63,7 @@ describe('Admin controllers (e2e)', () => {
     it('rejects an invalid email and unknown keys with 400', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
+        .set('Authorization', auth)
         .send({ email: 'not-an-email', role: 'admin' })
         .expect(400);
       expect(res.body.message).toEqual(
@@ -72,6 +79,7 @@ describe('Admin controllers (e2e)', () => {
     it('creates a poll with ordered options and makes it publicly readable', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/polls')
+        .set('Authorization', auth)
         .send({
           ownerId,
           question: 'Lunch?',
@@ -107,6 +115,7 @@ describe('Admin controllers (e2e)', () => {
     it('defaults to a draft, which is not publicly readable', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/polls')
+        .set('Authorization', auth)
         .send({
           ownerId,
           question: 'Dinner?',
@@ -123,6 +132,7 @@ describe('Admin controllers (e2e)', () => {
     it('answers 409 for a duplicate slug', async () => {
       await request(app.getHttpServer())
         .post('/admin/polls')
+        .set('Authorization', auth)
         .send({
           ownerId,
           question: 'Again?',
@@ -135,6 +145,7 @@ describe('Admin controllers (e2e)', () => {
     it('answers 422 when the owner does not exist', async () => {
       await request(app.getHttpServer())
         .post('/admin/polls')
+        .set('Authorization', auth)
         .send({
           ownerId: missingOwner,
           question: 'Orphan?',
@@ -147,6 +158,7 @@ describe('Admin controllers (e2e)', () => {
     it('rejects fewer than two options and a bad slug with 400', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/polls')
+        .set('Authorization', auth)
         .send({
           ownerId,
           question: 'One?',
@@ -167,6 +179,7 @@ describe('Admin controllers (e2e)', () => {
     it('creates a survey with ordered questions and makes it publicly readable', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/surveys')
+        .set('Authorization', auth)
         .send({
           ownerId,
           title: 'Feedback',
@@ -216,6 +229,7 @@ describe('Admin controllers (e2e)', () => {
     it('rejects a choice question without options with 400', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/surveys')
+        .set('Authorization', auth)
         .send({
           ownerId,
           title: 'Broken',
@@ -231,6 +245,7 @@ describe('Admin controllers (e2e)', () => {
     it('rejects options on a text question with 400', async () => {
       await request(app.getHttpServer())
         .post('/admin/surveys')
+        .set('Authorization', auth)
         .send({
           ownerId,
           title: 'Broken',
@@ -246,10 +261,12 @@ describe('Admin controllers (e2e)', () => {
       const questions = [{ type: 'rating', prompt: 'Score?' }];
       await request(app.getHttpServer())
         .post('/admin/surveys')
+        .set('Authorization', auth)
         .send({ ownerId, title: 'Dup', slug: 'admin-feedback', questions })
         .expect(409);
       await request(app.getHttpServer())
         .post('/admin/surveys')
+        .set('Authorization', auth)
         .send({
           ownerId: missingOwner,
           title: 'Orphan',
@@ -281,6 +298,7 @@ describe('Admin controllers (e2e)', () => {
 
       const res = await request(app.getHttpServer())
         .get(`/admin/surveys/${surveyId}/submissions`)
+        .set('Authorization', auth)
         .expect(200);
       expect(res.body.total).toBe(2);
       expect(res.body.items.map((s: { id: string }) => s.id)).toEqual([
@@ -308,6 +326,7 @@ describe('Admin controllers (e2e)', () => {
     it('pages with limit and offset while total counts everything', async () => {
       const res = await request(app.getHttpServer())
         .get(`/admin/surveys/${surveyId}/submissions?limit=1&offset=1`)
+        .set('Authorization', auth)
         .expect(200);
       expect(res.body.items).toHaveLength(1);
       expect(res.body.total).toBe(2);
@@ -316,9 +335,11 @@ describe('Admin controllers (e2e)', () => {
     it('answers 404 for an unknown survey and 400 for bad paging', async () => {
       await request(app.getHttpServer())
         .get(`/admin/surveys/${missingOwner}/submissions`)
+        .set('Authorization', auth)
         .expect(404);
       await request(app.getHttpServer())
         .get(`/admin/surveys/${surveyId}/submissions?limit=0`)
+        .set('Authorization', auth)
         .expect(400);
     });
   });

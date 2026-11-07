@@ -1,15 +1,15 @@
 # Two profiles, pick one with `docker compose --profile <name> up -d`:
 #
-#   infrastructure  PostgreSQL and Redis only, published on host ports 5433 and
-#                   6380 for an API started with `yarn start:dev` in api/
-#                   (api/.env.example already points at them).
+#   infrastructure  PostgreSQL, Redis and Keycloak only, published on host ports
+#                   5433, 6380 and 8180 for an API started with `yarn start:dev`
+#                   in api/ (api/.env.example already points at them).
 #
 #   app             Everything: builds api/Dockerfile and web/Dockerfile and runs
 #                   the full stack. Only the web server is published, on
 #                   http://localhost:8080; it proxies /api/ to the API container.
 #
-# Tests use neither. `yarn test:e2e` in api/ starts its own throwaway PostgreSQL
-# and Redis with Testcontainers.
+# Tests use neither. `yarn test:e2e` in api/ starts its own throwaway PostgreSQL,
+# Redis and identity provider (Testcontainers and a local JWKS server).
 name: opensurvey
 
 services:
@@ -22,11 +22,11 @@ services:
       POSTGRES_DB: opensurvey
     ports:
       # Host port 5433 so this does not clash with a Postgres already on 5432.
-      - '5433:5432'
+      - "5433:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U opensurvey -d opensurvey']
+      test: ["CMD-SHELL", "pg_isready -U opensurvey -d opensurvey"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -36,14 +36,58 @@ services:
     profiles: [infrastructure, app]
     ports:
       # Host port 6380 so this does not clash with a Redis already on 6379.
-      - '6380:6379'
+      - "6380:6379"
     # Holds only rate-limit counters and cached public responses, which expire
     # on their own, so no volume.
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 5s
       retries: 10
+
+  # Identity provider for development. Starts in dev mode (embedded H2, http)
+  # and imports keycloak/opensurvey-realm.json on every start: the `opensurvey`
+  # realm with the realm role `azg12345_SurveyAdmin`, the public client
+  # `opensurvey-web` (PKCE for the web app, password grant for curl), a client
+  # scope that puts `opensurvey-api` in `aud` and the caller's realm roles in a
+  # flat `roles` claim (what the API's @HasClaim() reads), and two users:
+  # admin@opensurvey.local / admin (has the role) and user@opensurvey.local /
+  # user (does not). The admin console is at http://localhost:8180 as
+  # admin / admin. No volume on purpose: every start is the realm file, so
+  # a change there is the only way to change the setup. Keep the realm file as
+  # the one source of truth and do not click changes into the console.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    profiles: [infrastructure, app]
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      # Fixes the issuer at http://localhost:8180/realms/opensurvey whether a
+      # token is requested from the host or from another container, so the
+      # API's AUTH_ISSUER matches either way. Requests still arrive on any
+      # hostname, which is how the api container fetches the JWKS at
+      # http://keycloak:8080/...
+      KC_HOSTNAME: http://localhost:8180
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    ports:
+      # Host port 8180 so this does not clash with the web container on 8080.
+      - "8180:8080"
+    healthcheck:
+      # The image has no curl; bash's /dev/tcp reaches the management port.
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000
+          && printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+          && grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
   api:
     build: ./api
@@ -57,19 +101,29 @@ services:
       PORT: 3000
       DATABASE_URL: postgres://opensurvey:opensurvey@postgres:5432/opensurvey
       REDIS_URL: redis://redis:6379
+      # Verify tokens from the keycloak service above. The JWKS is fetched over
+      # the compose network, but the issuer is the host-facing URL Keycloak
+      # stamps into every token (KC_HOSTNAME).
+      AUTH_JWKS_URL: http://keycloak:8080/realms/opensurvey/protocol/openid-connect/certs
+      AUTH_ISSUER: http://localhost:8180/realms/opensurvey
+      AUTH_AUDIENCE: opensurvey-api
       # The web container's nginx is the single proxy in front of the API, so
       # trust exactly one hop: the rate limiter then keys on the client address
       # nginx appends to X-Forwarded-For and ignores any value a client sends.
-      TRUST_PROXY: '1'
+      TRUST_PROXY: "1"
     # Not published to the host on purpose: a direct caller would count as the
     # trusted hop above and could spoof X-Forwarded-For. Reach it via the web
     # server at http://localhost:8080/api/.
     expose:
-      - '3000'
+      - "3000"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      # Not strictly needed at boot (the JWKS is fetched on the first protected
+      # request), but a stack that is up should accept tokens right away.
+      keycloak:
         condition: service_healthy
     restart: unless-stopped
 
@@ -77,7 +131,7 @@ services:
     build: ./web
     profiles: [app]
     ports:
-      - '8080:80'
+      - "8080:80"
     depends_on:
       - api
     restart: unless-stopped

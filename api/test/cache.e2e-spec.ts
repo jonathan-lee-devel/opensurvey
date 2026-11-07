@@ -10,6 +10,7 @@ import { AppModule } from './../src/app.module.js';
 import { EnvService } from './../src/config/env.schema.js';
 import { Database } from './../src/database/database.types.js';
 import { polls, users } from './../src/database/schema/index.js';
+import { bearer } from './auth.js';
 
 // Exercises CacheInterceptor exactly as the public controllers register it,
 // against the Testcontainers Redis that test/global-setup.ts starts.
@@ -141,6 +142,7 @@ describe('Public response cache (e2e)', () => {
     it('are not cached', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
+        .set('Authorization', await bearer())
         .send({ email: 'cache-admin@example.com' })
         .expect(201);
       expect(res.headers['x-cache']).toBeUndefined();

@@ -16,6 +16,9 @@ export function setupSwagger(app: INestApplication): void {
     .setTitle('OpenSurvey API')
     .setDescription('HTTP API for OpenSurvey polls, surveys and users.')
     .setVersion('0.0.1')
+    // The JWT Bearer scheme the admin controllers reference with
+    // @ApiBearerAuth(); the Authorize button in Swagger UI stores the token.
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
     .build();
   // A factory defers building the document until /docs is first requested.
   const documentFactory = () => SwaggerModule.createDocument(app, config);
