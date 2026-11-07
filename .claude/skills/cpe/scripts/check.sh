@@ -28,6 +28,7 @@ fi
 # --- api (NestJS) ---
 step "api: install"   bash -c 'cd api && yarn install --frozen-lockfile --silent'
 step "api: lint"      bash -c 'cd api && yarn lint'
+step "api: typecheck" bash -c 'cd api && yarn typecheck'
 step "api: unit"      bash -c 'cd api && yarn test'
 step "api: e2e"       bash -c 'cd api && yarn test:e2e'
 step "api: build"     bash -c 'cd api && yarn build'

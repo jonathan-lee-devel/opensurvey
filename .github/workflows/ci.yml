@@ -31,7 +31,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Lint
+      # oxlint, then `tsc --noEmit` over src/ and test/ (unit specs included).
+      - name: Lint and typecheck
         run: yarn lint:check
 
       - name: Unit tests
