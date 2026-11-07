@@ -3,8 +3,8 @@ import { relations } from 'drizzle-orm';
 import { pollOptions, polls, pollVotes } from './polls.js';
 import {
   surveyAnswers,
+  surveyAnswerSubmissions,
   surveyQuestions,
-  surveyResponses,
   surveys,
 } from './surveys.js';
 import { users } from './users.js';
@@ -17,7 +17,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 export const surveysRelations = relations(surveys, ({ one, many }) => ({
   owner: one(users, { fields: [surveys.ownerId], references: [users.id] }),
   questions: many(surveyQuestions),
-  responses: many(surveyResponses),
+  submissions: many(surveyAnswerSubmissions),
 }));
 
 export const surveyQuestionsRelations = relations(
@@ -31,15 +31,15 @@ export const surveyQuestionsRelations = relations(
   }),
 );
 
-export const surveyResponsesRelations = relations(
-  surveyResponses,
+export const surveyAnswerSubmissionsRelations = relations(
+  surveyAnswerSubmissions,
   ({ one, many }) => ({
     survey: one(surveys, {
-      fields: [surveyResponses.surveyId],
+      fields: [surveyAnswerSubmissions.surveyId],
       references: [surveys.id],
     }),
     respondent: one(users, {
-      fields: [surveyResponses.respondentId],
+      fields: [surveyAnswerSubmissions.respondentId],
       references: [users.id],
     }),
     answers: many(surveyAnswers),
@@ -47,9 +47,9 @@ export const surveyResponsesRelations = relations(
 );
 
 export const surveyAnswersRelations = relations(surveyAnswers, ({ one }) => ({
-  response: one(surveyResponses, {
-    fields: [surveyAnswers.responseId],
-    references: [surveyResponses.id],
+  submission: one(surveyAnswerSubmissions, {
+    fields: [surveyAnswers.submissionId],
+    references: [surveyAnswerSubmissions.id],
   }),
   question: one(surveyQuestions, {
     fields: [surveyAnswers.questionId],

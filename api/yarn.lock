@@ -815,6 +815,11 @@
   resolved "https://registry.yarnpkg.com/@nestjs/drizzle/-/drizzle-0.0.2.tgz#535a88f0d0e83a15345873130f99d0b8e08c1127"
   integrity sha512-9jBMBcqxPLV7BNuqoOQ/6boSH7z1cA6psKKiArHgJgDefBqniQExYjVNhE/GrqJd3vBEwCXkWXwpEvCi8qRIZg==
 
+"@nestjs/idempotency@^0.0.4":
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/@nestjs/idempotency/-/idempotency-0.0.4.tgz#45bfc555b67d4784693e523f13c41b637e908d8c"
+  integrity sha512-gclX5wJEGfAEKXiPK/aZK5wbcS6bFh7oh+39sHpCGxcJxCpzB9iULqegbwDS5oOUD32aQn+EPEAK2q/Q3Jz0Vg==
+
 "@nestjs/mapped-types@12.0.1":
   version "12.0.1"
   resolved "https://registry.yarnpkg.com/@nestjs/mapped-types/-/mapped-types-12.0.1.tgz#847f32994bed00790c1700289e79b48552bb8b08"

@@ -4,14 +4,17 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Logger, Module, StandardSchemaValidationPipe } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { IdempotencyModule } from '@nestjs/idempotency';
 import { createObserveModule } from '@nestjs/observe';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import type { Request } from 'express';
 
 import { PollsModule } from './app/polls/polls.module.js';
 import { SurveysModule } from './app/surveys/surveys.module.js';
 import { UsersModule } from './app/users/users.module.js';
 import { envSchema, EnvService } from './config/env.schema.js';
 import { DatabaseModule } from './database/database.module.js';
+import { RedisIdempotencyStore } from './idempotency/redis-idempotency.store.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -90,6 +93,14 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
         };
       },
     }),
+    // Idempotency keys for the public writes. A handler marked @Idempotent()
+    // runs once per Idempotency-Key and every retry gets the stored result;
+    // other routes are untouched. Keys are scoped by client IP until there is
+    // a signed-in user to scope them by, so one client's key cannot replay
+    // another's response. Records live in Redis (RedisIdempotencyStore below).
+    IdempotencyModule.forRoot({
+      scope: (req: Request) => req.ip,
+    }),
     DatabaseModule,
     SurveysModule,
     PollsModule,
@@ -104,6 +115,8 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     // Applies the ThrottlerModule limits to every route and answers 429 with
     // Retry-After and X-RateLimit-* headers once a client exceeds them.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    // Registers itself with IdempotencyStorage when Nest creates it.
+    RedisIdempotencyStore,
   ],
 })
 export class AppModule {}

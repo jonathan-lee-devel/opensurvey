@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  inet,
   integer,
   jsonb,
   pgTable,
@@ -66,26 +67,44 @@ export const surveyQuestions = pgTable(
 export type SurveyQuestion = typeof surveyQuestions.$inferSelect;
 export type NewSurveyQuestion = typeof surveyQuestions.$inferInsert;
 
-export const surveyResponses = pgTable(
-  'survey_responses',
+/**
+ * Scale for `rating` answers. The schema has no per-question scale yet; when
+ * it gets one, read it from the question instead of these constants.
+ */
+export const RATING_MIN = 1;
+export const RATING_MAX = 5;
+
+/**
+ * One submission of answers to a survey, with the request metadata it arrived
+ * with. The answers hang off it in `survey_answers`.
+ */
+export const surveyAnswerSubmissions = pgTable(
+  'survey_answer_submissions',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     surveyId: uuid('survey_id')
       .notNull()
       .references(() => surveys.id, { onDelete: 'cascade' }),
-    // Null for anonymous responses, and after the respondent is deleted.
+    // Null for anonymous submissions, and after the respondent is deleted.
     respondentId: uuid('respondent_id').references(() => users.id, {
       onDelete: 'set null',
     }),
+    // Request metadata, as the API saw it. The address is Express's `req.ip`,
+    // so it honours TRUST_PROXY; all three are null when the request lacks them.
+    ipAddress: inet('ip_address'),
+    userAgent: text('user_agent'),
+    referer: text('referer'),
     submittedAt: timestamp('submitted_at', { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
-  (t) => [index('survey_responses_survey_id_idx').on(t.surveyId)],
+  (t) => [index('survey_answer_submissions_survey_id_idx').on(t.surveyId)],
 );
 
-export type SurveyResponse = typeof surveyResponses.$inferSelect;
-export type NewSurveyResponse = typeof surveyResponses.$inferInsert;
+export type SurveyAnswerSubmission =
+  typeof surveyAnswerSubmissions.$inferSelect;
+export type NewSurveyAnswerSubmission =
+  typeof surveyAnswerSubmissions.$inferInsert;
 
 /** The JSON stored for one answer, depending on the question type. */
 export type SurveyAnswerValue = string | number | string[];
@@ -94,17 +113,18 @@ export const surveyAnswers = pgTable(
   'survey_answers',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    responseId: uuid('response_id')
+    submissionId: uuid('submission_id')
       .notNull()
-      .references(() => surveyResponses.id, { onDelete: 'cascade' }),
+      .references(() => surveyAnswerSubmissions.id, { onDelete: 'cascade' }),
     questionId: uuid('question_id')
       .notNull()
       .references(() => surveyQuestions.id, { onDelete: 'cascade' }),
     value: jsonb('value').$type<SurveyAnswerValue>().notNull(),
   },
   (t) => [
-    unique('survey_answers_response_id_question_id_key').on(
-      t.responseId,
+    // One answer per question per submission.
+    unique('survey_answers_submission_id_question_id_key').on(
+      t.submissionId,
       t.questionId,
     ),
   ],

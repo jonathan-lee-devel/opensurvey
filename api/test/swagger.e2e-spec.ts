@@ -46,6 +46,7 @@ describe('Swagger (e2e)', () => {
       '/admin/users',
       '/public/polls/{slug}',
       '/public/surveys/{slug}',
+      '/public/surveys/{slug}/submissions',
       '/public/users/{id}',
     ]);
     const get = body.paths['/public/users/{id}'].get;
