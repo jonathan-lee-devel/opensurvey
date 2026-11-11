@@ -19,6 +19,24 @@ export const createPollSchema = z.strictObject({
 
 export type CreatePollDto = z.infer<typeof createPollSchema>;
 
+/**
+ * What an administrator may change after creation: the poll's own fields,
+ * any subset, at least one. Options are fixed once votes can refer to them,
+ * so they are not editable here.
+ */
+export const updatePollSchema = z
+  .strictObject({
+    question: z.string().trim().min(1).max(500).optional(),
+    slug: slugSchema.optional(),
+    status: z.enum(publishStatus.enumValues).optional(),
+    closesAt: z.iso.datetime({ offset: true }).nullable().optional(),
+  })
+  .refine((dto) => Object.keys(dto).length > 0, {
+    message: 'at least one of question, slug, status or closesAt is required',
+  });
+
+export type UpdatePollDto = z.infer<typeof updatePollSchema>;
+
 /** A poll as administrators see it, owner included. */
 export const adminPollSchema = z.object({
   id: z.uuid(),

@@ -1,3 +1,4 @@
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import {
   ConflictException,
   NotFoundException,
@@ -24,6 +25,7 @@ const dto: CreatePollDto = {
 describe('AdminPollsService', () => {
   let service: AdminPollsService;
   let db: Mocked<Database>;
+  let cache: Mocked<Cache>;
   // Each tx.insert(...).values(...).returning() call pops the next result.
   let values: Stub<unknown[]>;
   let returning: Stub<unknown[]>;
@@ -42,6 +44,7 @@ describe('AdminPollsService', () => {
       .compile();
     service = unit;
     db = unitRef.get<Database>(getDrizzleToken());
+    cache = unitRef.get<Cache>(CACHE_MANAGER);
   });
 
   it('inserts the poll then its options, positioned by request order', async () => {
@@ -135,6 +138,103 @@ describe('AdminPollsService', () => {
       await expect(service.findById(pollId)).rejects.toBeInstanceOf(
         NotFoundException,
       );
+    });
+  });
+
+  describe('update', () => {
+    const pollId = '22222222-2222-4222-8222-222222222222';
+    let set: Stub<unknown[]>;
+    let returning: Stub<unknown[]>;
+
+    beforeEach(() => {
+      returning = stub();
+      set = stub().mockReturnValue({ where: () => ({ returning }) });
+      (db.update as unknown as Stub<unknown[]>).mockReturnValue({ set });
+      db.query.polls.findFirst
+        .mockResolvedValueOnce({ id: pollId, slug: 'old' } as never)
+        .mockResolvedValueOnce({
+          id: pollId,
+          slug: 'new',
+          options: [],
+        } as never);
+    });
+
+    it('updates the row, drops both cached public responses and returns the poll', async () => {
+      returning.mockResolvedValue([{ slug: 'new' }]);
+
+      const result = await service.update(pollId, {
+        slug: 'new',
+        closesAt: '2030-01-01T12:00:00Z',
+      });
+
+      expect(result).toMatchObject({ id: pollId, slug: 'new' });
+      expect(set).toHaveBeenCalledWith({
+        slug: 'new',
+        closesAt: new Date('2030-01-01T12:00:00Z'),
+      });
+      expect(cache.del).toHaveBeenCalledWith('/public/polls/old');
+      expect(cache.del).toHaveBeenCalledWith('/public/polls/new');
+    });
+
+    it('clears the closing time when given null and leaves it alone when absent', async () => {
+      returning.mockResolvedValue([{ slug: 'old' }]);
+      await service.update(pollId, { closesAt: null, status: 'closed' });
+      expect(set).toHaveBeenCalledWith({ closesAt: null, status: 'closed' });
+
+      db.query.polls.findFirst
+        .mockResolvedValueOnce({ id: pollId, slug: 'old' } as never)
+        .mockResolvedValueOnce({
+          id: pollId,
+          slug: 'old',
+          options: [],
+        } as never);
+      await service.update(pollId, { question: 'Dinner?' });
+      expect(set).toHaveBeenLastCalledWith({ question: 'Dinner?' });
+    });
+
+    it('maps a unique violation on the slug to ConflictException', async () => {
+      returning.mockRejectedValue(
+        new Error('Failed query', { cause: { code: '23505' } }),
+      );
+      await expect(
+        service.update(pollId, { slug: 'taken' }),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(cache.del).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when no poll has the id', async () => {
+      db.query.polls.findFirst.mockReset().mockResolvedValue(undefined);
+      await expect(
+        service.update(pollId, { status: 'closed' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(db.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('remove', () => {
+    const pollId = '22222222-2222-4222-8222-222222222222';
+    let returning: Stub<unknown[]>;
+
+    beforeEach(() => {
+      returning = stub();
+      // Cast past Drizzle's delete overloads, which the deep mock type cannot resolve.
+      (db.delete as unknown as Stub<unknown[]>).mockReturnValue({
+        where: () => ({ returning }),
+      });
+    });
+
+    it('deletes the row and drops its cached public response', async () => {
+      returning.mockResolvedValue([{ slug: 'gone' }]);
+      await expect(service.remove(pollId)).resolves.toBeUndefined();
+      expect(cache.del).toHaveBeenCalledWith('/public/polls/gone');
+    });
+
+    it('throws NotFoundException when nothing was deleted', async () => {
+      returning.mockResolvedValue([]);
+      await expect(service.remove(pollId)).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(cache.del).not.toHaveBeenCalled();
     });
   });
 });

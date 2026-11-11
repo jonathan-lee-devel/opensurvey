@@ -285,6 +285,88 @@ describe('Admin controllers (e2e)', () => {
     });
   });
 
+  describe('PATCH /admin/polls/:id and DELETE /admin/polls/:id', () => {
+    it('changes the fields given, clears closesAt with null, and keeps the options', async () => {
+      const res = await request(app.getHttpServer())
+        .patch(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .send({ question: 'Lunch, revised?', closesAt: null })
+        .expect(200);
+      expect(res.body).toMatchObject({
+        id: pollId,
+        question: 'Lunch, revised?',
+        closesAt: null,
+        slug: 'admin-lunch',
+        status: 'published',
+      });
+      expect(res.body.options).toHaveLength(3);
+    });
+
+    it('closing drops the cached public response, so the link stops answering', async () => {
+      await request(app.getHttpServer())
+        .get('/public/polls/admin-lunch')
+        .expect(200);
+      const hit = await request(app.getHttpServer())
+        .get('/public/polls/admin-lunch')
+        .expect(200);
+      expect(hit.headers['x-cache']).toBe('HIT');
+
+      await request(app.getHttpServer())
+        .patch(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .send({ status: 'closed' })
+        .expect(200);
+      await request(app.getHttpServer())
+        .get('/public/polls/admin-lunch')
+        .expect(404);
+    });
+
+    it('answers 409 for a slug another poll has, 400 for an empty body and 404 for an unknown id', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .send({ slug: 'admin-dinner' })
+        .expect(409);
+      await request(app.getHttpServer())
+        .patch(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .send({})
+        .expect(400);
+      await request(app.getHttpServer())
+        .patch(`/admin/polls/${missingOwner}`)
+        .set('Authorization', auth)
+        .send({ status: 'draft' })
+        .expect(404);
+    });
+
+    it('deletes the poll, then answers 404 for it', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .send({ status: 'published' })
+        .expect(200);
+      await request(app.getHttpServer())
+        .get('/public/polls/admin-lunch')
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .delete(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .expect(204);
+      await request(app.getHttpServer())
+        .get(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .expect(404);
+      await request(app.getHttpServer())
+        .get('/public/polls/admin-lunch')
+        .expect(404);
+      await request(app.getHttpServer())
+        .delete(`/admin/polls/${pollId}`)
+        .set('Authorization', auth)
+        .expect(404);
+    });
+  });
+
   describe('POST /admin/surveys', () => {
     it('creates a survey with ordered questions and makes it publicly readable', async () => {
       const res = await request(app.getHttpServer())

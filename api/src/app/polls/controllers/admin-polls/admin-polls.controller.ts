@@ -1,9 +1,20 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiTags,
@@ -14,13 +25,18 @@ import {
 import { SURVEY_ADMIN_CLAIM } from '../../../../auth/auth.constants.js';
 import { HasClaim } from '../../../../auth/decorators/has-claim.decorator.js';
 import { AdminPollsService } from '../../services/admin-polls/admin-polls.service.js';
-import type { CreatePollDto, ListPollsQuery } from './admin-polls.schema.js';
+import type {
+  CreatePollDto,
+  ListPollsQuery,
+  UpdatePollDto,
+} from './admin-polls.schema.js';
 import {
   adminPollListSchema,
   adminPollSchema,
   createPollSchema,
   listPollsQuerySchema,
   pollIdSchema,
+  updatePollSchema,
 } from './admin-polls.schema.js';
 
 @ApiTags('polls')
@@ -73,5 +89,38 @@ export class AdminPollsController {
   @ApiNotFoundResponse({ description: 'No poll has this id.' })
   findById(@Param('id', { schema: pollIdSchema }) id: string) {
     return this.adminPolls.findById(id);
+  }
+
+  /**
+   * Update a poll's question, slug, status or closing time
+   *
+   * @remarks Send only the fields to change. Publishing makes the poll
+   * readable at its public link; closing or renaming the slug takes effect
+   * there at once, the cached public response is dropped. Options cannot be
+   * changed once a poll exists.
+   */
+  @Patch(':id')
+  @ApiOkResponse({ standardSchema: adminPollSchema })
+  @ApiNotFoundResponse({ description: 'No poll has this id.' })
+  @ApiConflictResponse({ description: 'A poll with this slug exists.' })
+  update(
+    @Param('id', { schema: pollIdSchema }) id: string,
+    @Body({ schema: updatePollSchema }) dto: UpdatePollDto,
+  ) {
+    return this.adminPolls.update(id, dto);
+  }
+
+  /**
+   * Delete a poll
+   *
+   * @remarks Removes the poll with its options and votes, and drops its
+   * cached public response.
+   */
+  @Delete(':id')
+  @HttpCode(204)
+  @ApiNoContentResponse({ description: 'The poll is gone.' })
+  @ApiNotFoundResponse({ description: 'No poll has this id.' })
+  async remove(@Param('id', { schema: pollIdSchema }) id: string) {
+    await this.adminPolls.remove(id);
   }
 }

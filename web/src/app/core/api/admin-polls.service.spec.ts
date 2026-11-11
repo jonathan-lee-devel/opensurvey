@@ -30,6 +30,20 @@ describe('list and mutate endpoints', () => {
     backend.expectOne({ method: 'GET', url: '/api/admin/polls/p1' }).flush({});
   });
 
+  it('AdminPollsService patches and deletes by id', () => {
+    const polls = TestBed.inject(AdminPollsService);
+    polls.update('p1', { status: 'closed', closesAt: null }).subscribe();
+    const patch = backend.expectOne({ method: 'PATCH', url: '/api/admin/polls/p1' });
+    expect(patch.request.body).toEqual({ status: 'closed', closesAt: null });
+    patch.flush({});
+
+    polls.remove('p1').subscribe();
+    backend.expectOne({ method: 'DELETE', url: '/api/admin/polls/p1' }).flush(null, {
+      status: 204,
+      statusText: 'No Content',
+    });
+  });
+
   it('AdminUsersService lists with paging only', () => {
     TestBed.inject(AdminUsersService).list({ offset: 40 }).subscribe();
     const list = backend.expectOne((r) => r.url === '/api/admin/users');

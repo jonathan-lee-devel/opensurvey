@@ -158,6 +158,15 @@ export interface CreatePollDto {
   readonly options: readonly string[];
 }
 
+/** Any subset of a poll's own fields, at least one; options are fixed once votes can refer to them. */
+export interface UpdatePollDto {
+  readonly question?: string;
+  readonly slug?: string;
+  readonly status?: PublishStatus;
+  /** ISO 8601 date-time with offset, or null to stay open. */
+  readonly closesAt?: string | null;
+}
+
 export interface AdminPollOption {
   readonly id: string;
   readonly label: string;

@@ -46,4 +46,27 @@ describe('AdminPollsController', () => {
     await expect(unit.findById('p1')).resolves.toBe(poll);
     expect(unitRef.get(AdminPollsService).findById).toHaveBeenCalledWith('p1');
   });
+
+  it('passes the id and changes to the service and returns the poll', async () => {
+    const poll = { id: 'p1', question: 'Renamed?', options: [] };
+    const { unit, unitRef } = await TestBed.solitary(AdminPollsController)
+      .mock(AdminPollsService)
+      .impl((stub) => ({ update: stub().mockResolvedValue(poll) }))
+      .compile();
+
+    await expect(unit.update('p1', { status: 'closed' })).resolves.toBe(poll);
+    expect(unitRef.get(AdminPollsService).update).toHaveBeenCalledWith('p1', {
+      status: 'closed',
+    });
+  });
+
+  it('deletes through the service and answers nothing', async () => {
+    const { unit, unitRef } = await TestBed.solitary(AdminPollsController)
+      .mock(AdminPollsService)
+      .impl((stub) => ({ remove: stub().mockResolvedValue(undefined) }))
+      .compile();
+
+    await expect(unit.remove('p1')).resolves.toBeUndefined();
+    expect(unitRef.get(AdminPollsService).remove).toHaveBeenCalledWith('p1');
+  });
 });

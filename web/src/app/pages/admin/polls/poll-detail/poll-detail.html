@@ -7,11 +7,109 @@
 } @else if (store.poll(); as poll) {
   <app-page-header eyebrow="Poll" [title]="poll.question">
     <app-status-badge [status]="poll.status" />
+    @for (status of statuses; track status) {
+      @if (status !== poll.status) {
+        <button
+          type="button"
+          class="btn btn--ghost btn--sm"
+          [disabled]="changingStatus() !== null"
+          (click)="setStatus(status)"
+        >
+          @switch (status) {
+            @case ('published') {
+              {{ changingStatus() === status ? 'Publishing…' : 'Publish' }}
+            }
+            @case ('closed') {
+              {{ changingStatus() === status ? 'Closing…' : 'Close' }}
+            }
+            @default {
+              {{ changingStatus() === status ? 'Saving…' : 'Back to draft' }}
+            }
+          }
+        </button>
+      }
+    }
+    <button type="button" class="btn btn--danger btn--sm" (click)="confirmDelete()">Delete</button>
   </app-page-header>
+
+  <app-confirm-dialog
+    title="Delete this poll?"
+    [message]="
+      '“' + poll.question + '” and every vote on it will be removed. This cannot be undone.'
+    "
+    confirmLabel="Delete poll"
+    [danger]="true"
+  />
 
   <div class="layout">
     <section class="panel" aria-labelledby="about-title">
-      <h2 class="panel__title" id="about-title">About</h2>
+      <div class="panel__head">
+        <h2 class="panel__title" id="about-title">About</h2>
+        @if (!editing()) {
+          <button type="button" class="btn btn--ghost btn--sm" (click)="startEdit(poll)">
+            Edit details
+          </button>
+        }
+      </div>
+      @if (editing()) {
+        <form class="edit" novalidate (submit)="saveEdit($event)" aria-label="Edit poll details">
+          <app-form-field [field]="editForm.question" label="Question" controlId="edit-question">
+            <input class="input" id="edit-question" type="text" [formField]="editForm.question" />
+          </app-form-field>
+          <app-form-field
+            [field]="editForm.slug"
+            label="Slug"
+            controlId="edit-slug"
+            hint="Renaming moves the public link at once."
+          >
+            <input
+              class="input mono"
+              id="edit-slug"
+              type="text"
+              spellcheck="false"
+              [formField]="editForm.slug"
+              aria-describedby="edit-slug-hint"
+            />
+          </app-form-field>
+          <app-form-field
+            [field]="editForm.closesAt"
+            label="Closes at"
+            controlId="edit-closesAt"
+            hint="Leave empty to keep the poll open."
+          >
+            <input
+              class="input"
+              id="edit-closesAt"
+              type="datetime-local"
+              [formField]="editForm.closesAt"
+              aria-describedby="edit-closesAt-hint"
+            />
+          </app-form-field>
+          @if (editForm().errors().length > 0) {
+            <p class="edit__error" role="alert">
+              @for (error of editForm().errors(); track $index) {
+                {{ error.message }}
+              }
+            </p>
+          }
+          <div class="edit__actions">
+            <button
+              type="submit"
+              class="btn btn--primary btn--sm"
+              [disabled]="editForm().submitting()"
+            >
+              @if (editForm().submitting()) {
+                Saving…
+              } @else {
+                Save
+              }
+            </button>
+            <button type="button" class="btn btn--ghost btn--sm" (click)="cancelEdit()">
+              Cancel
+            </button>
+          </div>
+        </form>
+      }
       <dl class="meta">
         <div class="meta__row">
           <dt>Slug</dt>
@@ -53,8 +151,8 @@
       </dl>
       @if (poll.status !== 'published') {
         <p class="note muted">
-          Only published polls are visible at the public endpoint. Changing a poll's status is not
-          available in the API yet.
+          Only published polls answer at the public endpoint; this one is
+          {{ poll.status | statusLabel | lowercase }}.
         </p>
       }
     </section>

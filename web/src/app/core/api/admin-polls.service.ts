@@ -3,7 +3,7 @@ import { Service, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AdminPoll, AdminPollList, CreatePollDto, ListPollsQuery } from './models';
+import { AdminPoll, AdminPollList, CreatePollDto, ListPollsQuery, UpdatePollDto } from './models';
 import { pageParams } from './page-params';
 
 /** `/admin/polls`: one method per handler of the API's AdminPollsController. */
@@ -26,5 +26,13 @@ export class AdminPollsService {
 
   findById(id: string): Observable<AdminPoll> {
     return this.http.get<AdminPoll>(`${this.baseUrl}/${encodeURIComponent(id)}`);
+  }
+
+  update(id: string, dto: UpdatePollDto): Observable<AdminPoll> {
+    return this.http.patch<AdminPoll>(`${this.baseUrl}/${encodeURIComponent(id)}`, dto);
+  }
+
+  remove(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${encodeURIComponent(id)}`);
   }
 }
