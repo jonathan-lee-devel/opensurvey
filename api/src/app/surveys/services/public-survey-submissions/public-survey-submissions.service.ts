@@ -1,18 +1,11 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, UnprocessableEntityException, } from '@nestjs/common';
 import { and, eq } from 'drizzle-orm';
 
 import type { ClientMetadata } from '../../../../common/client-metadata.decorator.js';
 import type { Database } from '../../../../database/database.types.js';
 import { InjectDrizzle } from '../../../../database/database.types.js';
 import { isForeignKeyViolation } from '../../../../database/pg-errors.js';
-import type {
-  QuestionType,
-  SurveyAnswerValue,
-} from '../../../../database/schema/index.js';
+import type { QuestionType, SurveyAnswerValue, } from '../../../../database/schema/index.js';
 import {
   RATING_MAX,
   RATING_MIN,
@@ -20,7 +13,9 @@ import {
   surveyAnswerSubmissions,
   surveys,
 } from '../../../../database/schema/index.js';
-import type { CreateSubmissionDto } from '../../controllers/public-survey-submissions/public-survey-submissions.schema.js';
+import type {
+  CreateSubmissionDto
+} from '../../controllers/public-survey-submissions/public-survey-submissions.schema.js';
 
 /** What the validation needs to know about a question. */
 interface AnswerableQuestion {
